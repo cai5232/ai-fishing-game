@@ -6,15 +6,6 @@ from fastapi.responses import HTMLResponse
 
 app = FastAPI()
 
-HTML = """import os
-import engine
-import uvicorn
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, JSONResponse
-import json, re
-
-app = FastAPI()
-
 HTML = """<!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -23,7 +14,6 @@ HTML = """<!DOCTYPE html>
 <title>Fishing</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
   body {
     background: #fff;
     color: #111;
@@ -33,8 +23,6 @@ HTML = """<!DOCTYPE html>
     flex-direction: column;
     overflow: hidden;
   }
-
-  /* ── 顶栏 ── */
   #topbar {
     display: flex;
     align-items: flex-end;
@@ -43,9 +31,7 @@ HTML = """<!DOCTYPE html>
     border-bottom: 1px solid #f0f0f0;
     flex-shrink: 0;
   }
-
   #topbar-left { display: flex; align-items: flex-end; gap: 14px; }
-
   #title {
     font-size: 32px;
     font-weight: 700;
@@ -53,44 +39,37 @@ HTML = """<!DOCTYPE html>
     line-height: 1;
     color: #111;
   }
-
   #stats {
     display: flex;
     gap: 10px;
     align-items: flex-end;
     padding-bottom: 3px;
   }
-
   .stat-item {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 1px;
   }
-
   .stat-val {
     font-size: 13px;
     font-weight: 600;
     color: #111;
     line-height: 1;
   }
-
   .stat-label {
     font-size: 9px;
     color: #aaa;
     letter-spacing: 0.3px;
     line-height: 1;
   }
-
   .stat-divider {
     width: 1px;
     height: 20px;
     background: #e8e8e8;
     margin-bottom: 2px;
   }
-
   #topbar-right { display: flex; gap: 16px; align-items: center; }
-
   .icon-btn {
     background: none;
     border: none;
@@ -101,10 +80,7 @@ HTML = """<!DOCTYPE html>
     align-items: center;
     justify-content: center;
   }
-
   .icon-btn svg { width: 22px; height: 22px; }
-
-  /* ── 输出区 ── */
   #output {
     flex: 1;
     overflow-y: auto;
@@ -113,15 +89,12 @@ HTML = """<!DOCTYPE html>
     flex-direction: column;
     gap: 10px;
   }
-
   .msg-wrap { display: flex; flex-direction: column; gap: 2px; }
-
   .msg-cmd {
     font-size: 11px;
     color: #bbb;
     font-family: monospace;
   }
-
   .msg-card {
     background: #f7f7f7;
     border-radius: 14px;
@@ -133,8 +106,6 @@ HTML = """<!DOCTYPE html>
     word-break: break-all;
     font-family: monospace;
   }
-
-  /* ── 快捷按钮 ── */
   #quick-btns {
     display: flex;
     gap: 8px;
@@ -145,7 +116,6 @@ HTML = """<!DOCTYPE html>
     scrollbar-width: none;
   }
   #quick-btns::-webkit-scrollbar { display: none; }
-
   .qbtn {
     background: #f2f2f2;
     color: #333;
@@ -159,8 +129,6 @@ HTML = """<!DOCTYPE html>
     font-family: inherit;
   }
   .qbtn:active { background: #e0e0e0; }
-
-  /* ── 输入栏 ── */
   #input-row {
     display: flex;
     gap: 10px;
@@ -168,7 +136,6 @@ HTML = """<!DOCTYPE html>
     border-top: 1px solid #f0f0f0;
     flex-shrink: 0;
   }
-
   #cmd-input {
     flex: 1;
     background: #f2f2f2;
@@ -180,7 +147,6 @@ HTML = """<!DOCTYPE html>
     font-family: monospace;
     outline: none;
   }
-
   #send-btn {
     background: #111;
     color: #fff;
@@ -193,8 +159,6 @@ HTML = """<!DOCTYPE html>
     flex-shrink: 0;
   }
   #send-btn:active { background: #333; }
-
-  /* ── 余额弹窗 ── */
   #wallet-overlay {
     display: none;
     position: fixed;
@@ -205,7 +169,6 @@ HTML = """<!DOCTYPE html>
     justify-content: center;
   }
   #wallet-overlay.open { display: flex; }
-
   #wallet-sheet {
     background: #fff;
     border-radius: 20px 20px 0 0;
@@ -215,7 +178,6 @@ HTML = """<!DOCTYPE html>
     max-height: 60vh;
     overflow-y: auto;
   }
-
   #wallet-sheet h2 {
     font-size: 18px;
     font-weight: 700;
@@ -224,7 +186,6 @@ HTML = """<!DOCTYPE html>
     justify-content: space-between;
     align-items: center;
   }
-
   #wallet-sheet h2 button {
     background: none;
     border: none;
@@ -233,21 +194,18 @@ HTML = """<!DOCTYPE html>
     color: #aaa;
     line-height: 1;
   }
-
   .wallet-total {
     font-size: 32px;
     font-weight: 700;
     color: #111;
     margin-bottom: 20px;
   }
-
   .wallet-total span {
     font-size: 16px;
     font-weight: 400;
     color: #aaa;
     margin-left: 4px;
   }
-
   .wallet-row {
     display: flex;
     justify-content: space-between;
@@ -255,15 +213,12 @@ HTML = """<!DOCTYPE html>
     border-bottom: 1px solid #f2f2f2;
     font-size: 14px;
   }
-
   .wallet-row .label { color: #555; }
   .wallet-row .amount { font-weight: 600; color: #111; }
   .wallet-row .amount.neg { color: #e55; }
 </style>
 </head>
 <body>
-
-<!-- 顶栏 -->
 <div id="topbar">
   <div id="topbar-left">
     <div id="title">Fishing</div>
@@ -291,7 +246,6 @@ HTML = """<!DOCTYPE html>
   </div>
   <div id="topbar-right">
     <button class="icon-btn" onclick="openWallet()" title="余额">
-      <!-- 钱包图标 -->
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <rect x="2" y="7" width="20" height="14" rx="3"/>
         <path d="M16 3H6a2 2 0 0 0-2 2v2"/>
@@ -299,7 +253,6 @@ HTML = """<!DOCTYPE html>
       </svg>
     </button>
     <button class="icon-btn" onclick="openSettings()" title="设置">
-      <!-- 设置图标 -->
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="3"/>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -307,11 +260,7 @@ HTML = """<!DOCTYPE html>
     </button>
   </div>
 </div>
-
-<!-- 输出区 -->
 <div id="output"></div>
-
-<!-- 快捷按钮 -->
 <div id="quick-btns">
   <button class="qbtn" onclick="send('status')">状态</button>
   <button class="qbtn" onclick="send('cast')">钓一竿</button>
@@ -323,15 +272,11 @@ HTML = """<!DOCTYPE html>
   <button class="qbtn" onclick="send('encyclopedia')">图鉴</button>
   <button class="qbtn" onclick="send('help')">帮助</button>
 </div>
-
-<!-- 输入栏 -->
 <div id="input-row">
   <input id="cmd-input" placeholder="输入指令，如 cast / buy basic_worm 5"
     onkeydown="if(event.key==='Enter')send()">
   <button id="send-btn" onclick="send()">发送</button>
 </div>
-
-<!-- 余额弹窗 -->
 <div id="wallet-overlay" onclick="closeWallet(event)">
   <div id="wallet-sheet">
     <h2>余额明细 <button onclick="closeWallet()">×</button></h2>
@@ -344,20 +289,15 @@ HTML = """<!DOCTYPE html>
     </div>
   </div>
 </div>
-
 <script>
 const output = document.getElementById('output');
 const input  = document.getElementById('cmd-input');
-
-// 收入明细记录
 const ledger = [];
-
 function parseStats(text) {
   const m = text.match(/📊\s*(\{.*\})/);
   if (!m) return null;
   try { return JSON.parse(m[1]); } catch { return null; }
 }
-
 function updateTopbar(s) {
   if (!s) return;
   document.getElementById('stat-pts').textContent  = s.pts  ?? '—';
@@ -365,23 +305,18 @@ function updateTopbar(s) {
   document.getElementById('stat-turn').textContent = s.turn ?? '—';
   document.getElementById('stat-enc').textContent  = s.enc  ?? '—';
 }
-
 function recordLedger(cmd, text, statsBefore, statsAfter) {
   if (!statsBefore || !statsAfter) return;
   const diff = (statsAfter.pts ?? 0) - (statsBefore.pts ?? 0);
   if (diff === 0) return;
   ledger.push({ cmd, diff, pts: statsAfter.pts });
 }
-
 let lastStats = null;
-
 async function send(cmd) {
   const q = cmd || input.value.trim();
   if (!q) return;
   input.value = '';
-
   const statsBefore = lastStats;
-
   const wrap = document.createElement('div');
   wrap.className = 'msg-wrap';
   const cmdEl = document.createElement('div');
@@ -394,12 +329,10 @@ async function send(cmd) {
   wrap.appendChild(card);
   output.appendChild(wrap);
   output.scrollTop = output.scrollHeight;
-
   try {
     const r = await fetch('/cmd?q=' + encodeURIComponent(q));
     const d = await r.json();
     card.textContent = d.result;
-
     const s = parseStats(d.result);
     if (s) {
       recordLedger(q, d.result, statsBefore, s);
@@ -411,55 +344,31 @@ async function send(cmd) {
   }
   output.scrollTop = output.scrollHeight;
 }
-
-// 余额弹窗
 function openWallet() {
   document.getElementById('wallet-total').innerHTML =
     (lastStats?.pts ?? '—') + ' <span>pts</span>';
-
   const rows = document.getElementById('wallet-rows');
   if (ledger.length === 0) {
     rows.innerHTML = '<div class="wallet-row"><span class="label">暂无明细</span><span class="amount">—</span></div>';
   } else {
     rows.innerHTML = ledger.slice().reverse().map(e =>
-      `<div class="wallet-row">
-        <span class="label">${e.cmd}</span>
-        <span class="amount ${e.diff < 0 ? 'neg' : ''}">${e.diff > 0 ? '+' : ''}${e.diff} pts</span>
-      </div>`
+      '<div class="wallet-row"><span class="label">' + e.cmd + '</span><span class="amount ' + (e.diff < 0 ? 'neg' : '') + '">' + (e.diff > 0 ? '+' : '') + e.diff + ' pts</span></div>'
     ).join('');
   }
   document.getElementById('wallet-overlay').classList.add('open');
 }
-
 function closeWallet(e) {
   if (!e || e.target === document.getElementById('wallet-overlay')) {
     document.getElementById('wallet-overlay').classList.remove('open');
   }
 }
-
 function openSettings() {
-  // 暂未实现，占位
   alert('设置页面即将上线');
 }
-
-// 初始化
 send('status');
 </script>
 </body>
 </html>"""
-
-@app.get("/", response_class=HTMLResponse)
-def root():
-    return HTML
-
-@app.get("/cmd")
-def cmd(q: str):
-    return {"result": engine.cmd(q)}
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
-"""
 
 @app.get("/", response_class=HTMLResponse)
 def root():
