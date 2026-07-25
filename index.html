@@ -35,6 +35,7 @@ body { background:#fff; color:#111; font-family:-apple-system,'Helvetica Neue',s
 #cmd-input { flex:1; background:#f2f2f2; color:#111; border:none; border-radius:22px; padding:10px 16px; font-size:14px; font-family:monospace; outline:none; }
 #send-btn { background:#111; color:#fff; border:none; border-radius:22px; padding:10px 20px; font-size:14px; cursor:pointer; font-family:inherit; flex-shrink:0; }
 #send-btn:active { background:#333; }
+
 .fullpage { display:none; position:fixed; inset:0; background:#f2f2f7; z-index:200; flex-direction:column; overflow:hidden; }
 .fullpage.open { display:flex; }
 #settings-body { flex:1; overflow-y:auto; padding-bottom:max(40px,env(safe-area-inset-bottom)); }
@@ -56,6 +57,7 @@ body { background:#fff; color:#111; font-family:-apple-system,'Helvetica Neue',s
 .s-label { flex:1; font-size:16px; color:#111; }
 .s-arrow { color:#c7c7cc; }
 .s-arrow svg { width:16px; height:16px; }
+
 .fp-nav { display:flex; align-items:center; padding:56px 20px 10px; background:#f2f2f7; flex-shrink:0; gap:8px; }
 .fp-back { background:none; border:none; cursor:pointer; color:#007aff; font-size:16px; display:flex; align-items:center; gap:4px; padding:4px 0; font-family:inherit; }
 .fp-back svg { width:18px; height:18px; }
@@ -64,6 +66,24 @@ body { background:#fff; color:#111; font-family:-apple-system,'Helvetica Neue',s
 .subpage-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; color:#aaa; padding:60px 0; }
 .subpage-empty .ep-icon { font-size:48px; }
 .subpage-empty .ep-text { font-size:15px; }
+
+/* 商店 */
+.shop-search-wrap { position:sticky; top:0; background:#f2f2f7; padding:0 0 12px; z-index:5; }
+.shop-search { display:flex; align-items:center; background:#fff; border-radius:12px; padding:10px 14px; gap:8px; }
+.shop-search svg { width:16px; height:16px; color:#aaa; flex-shrink:0; }
+.shop-search input { flex:1; border:none; outline:none; font-size:14px; color:#111; background:transparent; font-family:inherit; }
+.shop-search input::placeholder { color:#bbb; }
+.shop-items { display:flex; flex-direction:column; gap:10px; }
+.shop-item { background:#fff; border-radius:14px; padding:14px; display:flex; gap:12px; align-items:center; cursor:pointer; }
+.shop-item:active { background:#f5f5f5; }
+.shop-thumb { width:56px; height:56px; border-radius:10px; background:#e8e8e8; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#bbb; font-size:22px; }
+.shop-info { flex:1; min-width:0; }
+.shop-name { font-size:15px; font-weight:600; color:#111; margin-bottom:3px; }
+.shop-desc { font-size:12px; color:#888; line-height:1.5; }
+.shop-price { font-size:14px; font-weight:700; color:#ff9500; flex-shrink:0; white-space:nowrap; }
+.shop-loading { text-align:center; color:#aaa; padding:40px 0; font-size:14px; }
+
+/* 钱包/MCP */
 .mcp-card { background:#fff; border-radius:14px; padding:20px; margin-bottom:16px; }
 .mcp-card h3 { font-size:15px; font-weight:600; color:#111; margin-bottom:6px; }
 .mcp-card p { font-size:13px; color:#888; margin-bottom:14px; line-height:1.5; }
@@ -232,67 +252,71 @@ function openSettings()  { document.getElementById('page-settings').classList.ad
 function closeSettings() { document.getElementById('page-settings').classList.remove('open'); }
 
 function openSubpage(key) {
-  const info = { shop:{title:'商店'}, wallet:{title:'钱包'}, encyclopedia:{title:'图鉴'}, sell:{title:'卖鱼'}, bluetooth:{title:'蓝牙'} };
-  document.getElementById('subpage-title').textContent = (info[key]||{title:key}).title;
+  const titles = { shop:'商店', wallet:'钱包', encyclopedia:'图鉴', sell:'卖鱼', bluetooth:'蓝牙' };
+  document.getElementById('subpage-title').textContent = titles[key] || key;
   const body = document.getElementById('subpage-body');
-  if (key === 'wallet') renderWallet(body);
+  body.innerHTML = '';
+  if      (key === 'shop')      renderShop(body);
+  else if (key === 'wallet')    renderWallet(body);
   else if (key === 'bluetooth') renderBluetooth(body);
   else body.innerHTML = '<div class="subpage-empty"><div class="ep-icon">🚧</div><div class="ep-text">即将上线</div></div>';
   document.getElementById('page-sub').classList.add('open');
 }
 function closeSubpage() { document.getElementById('page-sub').classList.remove('open'); }
 
-function renderWallet(body) {
-  const total = lastStats ? lastStats.pts : '—';
-  const rows = ledger.length === 0
-    ? '<div class="wallet-row"><span class="label">暂无明细</span><span class="amount">—</span></div>'
-    : ledger.slice().reverse().map(e =>
-        '<div class="wallet-row"><span class="label">' + e.cmd + '</span>' +
-        '<span class="amount' + (e.diff < 0 ? ' neg' : '') + '">' + (e.diff > 0 ? '+' : '') + e.diff + ' pts</span></div>'
-      ).join('');
-  body.innerHTML = '<div class="mcp-card"><h3>当前余额</h3>' +
-    '<div style="font-size:36px;font-weight:700;color:#111;margin:8px 0 16px">' + total +
-    ' <span style="font-size:16px;color:#aaa">pts</span></div>' + rows + '</div>';
-}
+// ── 商店 ──
+const BAIT_EMOJIS = { basic_worm:'🪱', red_worm:'🐛', glow_bait:'✨', oxygen:'🫧' };
+const BAIT_DESCS  = {
+  basic_worm: '最普通的蚯蚓，上手即用，适合在月光池塘和芦苇河练手。',
+  red_worm:   '红色蚯蚓，诱鱼效果更好，稀有鱼概率小幅提升。',
+  glow_bait:  '夜光饵，深水鱼和稀有鱼更容易上钩。',
+  oxygen:     '氧气瓶，用于潜水远征，每瓶提供一单位下潜深度。',
+};
 
-function renderBluetooth(body) {
-  const url = BASE + '/mcp/fishing';
+let allShopItems = [];
+
+async function renderShop(body) {
   body.innerHTML =
-    '<div class="mcp-card">' +
-    '<h3>AI 接入 · MCP 工具 <span class="mcp-badge">已上线</span></h3>' +
-    '<p>把下面的接口配置到 AI 的工具里，AI 就能直接操作这个钓鱼存档，和你共享进度。</p>' +
-    '<div style="font-size:12px;color:#aaa;margin-bottom:6px">指令接口（GET /mcp/fishing?q=指令）</div>' +
-    '<div class="mcp-url">' + url + '?q=cast</div>' +
-    '<button class="mcp-copy-btn" id="copybtn" onclick="copyMcp()">复制接口地址</button>' +
-    '</div>' +
-    '<div class="mcp-card"><h3>使用说明</h3>' +
-    '<p>参数 <code style="background:#f2f2f7;padding:2px 6px;border-radius:4px">q</code> 传入指令，如 <code style="background:#f2f2f7;padding:2px 6px;border-radius:4px">cast</code>、<code style="background:#f2f2f7;padding:2px 6px;border-radius:4px">status</code>、<code style="background:#f2f2f7;padding:2px 6px;border-radius:4px">buy basic_worm 5</code>，返回 JSON <code style="background:#f2f2f7;padding:2px 6px;border-radius:4px">{"result":"..."}</code>。</p>' +
-    '</div>';
-}
+    '<div class="shop-search-wrap">' +
+    '<div class="shop-search">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
+    '<input id="shop-search-input" placeholder="搜索鱼饵、氧气瓶..." oninput="filterShop(this.value)">' +
+    '</div></div>' +
+    '<div class="shop-items" id="shop-items-list"><div class="shop-loading">加载中…</div></div>';
 
-function copyMcp() {
-  const url = BASE + '/mcp/fishing';
-  navigator.clipboard.writeText(url).then(() => {
-    const btn = document.getElementById('copybtn');
-    btn.textContent = '已复制！';
-    btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = '复制接口地址'; btn.classList.remove('copied'); }, 2000);
-  });
-}
-
-async function init() {
   try {
-    const r = await fetch('/cmd?q=status');
+    const r = await fetch('/cmd?q=shop');
     const d = await r.json();
-    const s = parseStats(d.result);
-    const card = document.createElement('div'); card.className = 'msg-card';
-    card.textContent = cleanOutput(d.result);
-    const wrap = document.createElement('div'); wrap.className = 'msg-wrap';
-    wrap.appendChild(card); output.appendChild(wrap);
-    if (s) { updateTopbar(s); lastStats = s; }
-  } catch(e) { setTimeout(init, 2000); }
+    allShopItems = parseShopText(d.result);
+    renderShopItems(allShopItems);
+  } catch(e) {
+    document.getElementById('shop-items-list').innerHTML = '<div class="shop-loading">加载失败</div>';
+  }
 }
-init();
-</script>
-</body>
-</html>
+
+function parseShopText(text) {
+  const items = [];
+  const lines = text.split('\n');
+  for (const line of lines) {
+    // 匹配格式：[id] 名字 xxx点 （其余信息）
+    const m = line.match(/\[([^\]]+)\]\s+(.+?)\s+(\d+)\s*点/);
+    if (m) {
+      const id   = m[1].trim();
+      const name = m[2].trim();
+      const price= parseInt(m[3]);
+      // 尝试从括号里取描述
+      const descM = line.match(/[（(]([^）)]+)[）)]/);
+      const desc = descM ? descM[1] : (BAIT_DESCS[id] || '');
+      items.push({ id, name, price, desc });
+    }
+  }
+  // 如果解析不到就回退到用内置描述展示已知物品
+  if (items.length === 0) {
+    return Object.entries(BAIT_DESCS).map(([id, desc]) => ({
+      id, name: id, price: 0, desc
+    }));
+  }
+  return items;
+}
+
+function renderShopItems(items)
