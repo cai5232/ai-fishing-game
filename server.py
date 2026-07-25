@@ -10,7 +10,11 @@ HTML = """<!DOCTYPE html>
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Fishing">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Fishing</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -18,58 +22,67 @@ HTML = """<!DOCTYPE html>
     background: #fff;
     color: #111;
     font-family: -apple-system, 'Helvetica Neue', sans-serif;
-    height: 100vh;
+    height: 100svh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
   }
   #topbar {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: space-between;
     padding: 18px 20px 10px;
     border-bottom: 1px solid #f0f0f0;
     flex-shrink: 0;
+    gap: 12px;
   }
-  #topbar-left { display: flex; align-items: flex-end; gap: 14px; }
+  #topbar-left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
   #title {
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 700;
     letter-spacing: -1px;
     line-height: 1;
     color: #111;
+    flex-shrink: 0;
   }
   #stats {
     display: flex;
-    gap: 10px;
-    align-items: flex-end;
-    padding-bottom: 3px;
+    gap: 0;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
   }
   .stat-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1px;
+    flex: 1;
+    min-width: 0;
   }
   .stat-val {
     font-size: 13px;
     font-weight: 600;
     color: #111;
-    line-height: 1;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
   }
   .stat-label {
     font-size: 9px;
     color: #aaa;
     letter-spacing: 0.3px;
-    line-height: 1;
+    line-height: 1.2;
+    white-space: nowrap;
   }
   .stat-divider {
     width: 1px;
-    height: 20px;
+    height: 24px;
     background: #e8e8e8;
-    margin-bottom: 2px;
+    flex-shrink: 0;
   }
-  #topbar-right { display: flex; gap: 16px; align-items: center; }
+  #topbar-right { display: flex; gap: 14px; align-items: center; flex-shrink: 0; }
   .icon-btn {
     background: none;
     border: none;
@@ -90,11 +103,6 @@ HTML = """<!DOCTYPE html>
     gap: 10px;
   }
   .msg-wrap { display: flex; flex-direction: column; gap: 2px; }
-  .msg-cmd {
-    font-size: 11px;
-    color: #bbb;
-    font-family: monospace;
-  }
   .msg-card {
     background: #f7f7f7;
     border-radius: 14px;
@@ -132,7 +140,8 @@ HTML = """<!DOCTYPE html>
   #input-row {
     display: flex;
     gap: 10px;
-    padding: 10px 20px 24px;
+    padding: 10px 20px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
     border-top: 1px solid #f0f0f0;
     flex-shrink: 0;
   }
@@ -293,11 +302,18 @@ HTML = """<!DOCTYPE html>
 const output = document.getElementById('output');
 const input  = document.getElementById('cmd-input');
 const ledger = [];
+
 function parseStats(text) {
   const m = text.match(/📊\s*(\{.*\})/);
   if (!m) return null;
   try { return JSON.parse(m[1]); } catch { return null; }
 }
+
+function cleanOutput(text) {
+  // 去掉末尾的📊 JSON行
+  return text.replace(/\n?📊\s*\{.*\}\s*$/, '').trim();
+}
+
 function updateTopbar(s) {
   if (!s) return;
   document.getElementById('stat-pts').textContent  = s.pts  ?? '—';
@@ -305,37 +321,38 @@ function updateTopbar(s) {
   document.getElementById('stat-turn').textContent = s.turn ?? '—';
   document.getElementById('stat-enc').textContent  = s.enc  ?? '—';
 }
-function recordLedger(cmd, text, statsBefore, statsAfter) {
+
+function recordLedger(cmd, statsBefore, statsAfter) {
   if (!statsBefore || !statsAfter) return;
   const diff = (statsAfter.pts ?? 0) - (statsBefore.pts ?? 0);
   if (diff === 0) return;
   ledger.push({ cmd, diff, pts: statsAfter.pts });
 }
+
 let lastStats = null;
+
 async function send(cmd) {
   const q = cmd || input.value.trim();
   if (!q) return;
   input.value = '';
   const statsBefore = lastStats;
+
   const wrap = document.createElement('div');
   wrap.className = 'msg-wrap';
-  const cmdEl = document.createElement('div');
-  cmdEl.className = 'msg-cmd';
-  cmdEl.textContent = '▶ ' + q;
   const card = document.createElement('div');
   card.className = 'msg-card';
   card.textContent = '…';
-  wrap.appendChild(cmdEl);
   wrap.appendChild(card);
   output.appendChild(wrap);
   output.scrollTop = output.scrollHeight;
+
   try {
     const r = await fetch('/cmd?q=' + encodeURIComponent(q));
     const d = await r.json();
-    card.textContent = d.result;
     const s = parseStats(d.result);
+    card.textContent = cleanOutput(d.result);
     if (s) {
-      recordLedger(q, d.result, statsBefore, s);
+      recordLedger(q, statsBefore, s);
       updateTopbar(s);
       lastStats = s;
     }
@@ -344,6 +361,7 @@ async function send(cmd) {
   }
   output.scrollTop = output.scrollHeight;
 }
+
 function openWallet() {
   document.getElementById('wallet-total').innerHTML =
     (lastStats?.pts ?? '—') + ' <span>pts</span>';
@@ -357,14 +375,17 @@ function openWallet() {
   }
   document.getElementById('wallet-overlay').classList.add('open');
 }
+
 function closeWallet(e) {
   if (!e || e.target === document.getElementById('wallet-overlay')) {
     document.getElementById('wallet-overlay').classList.remove('open');
   }
 }
+
 function openSettings() {
   alert('设置页面即将上线');
 }
+
 send('status');
 </script>
 </body>
