@@ -1,14 +1,14 @@
 import os
 import engine
-from mcp.server.fastmcp import FastMCP
+import uvicorn
+from fastapi import FastAPI
 
-mcp = FastMCP("fishing")
+app = FastAPI()
 
-@mcp.tool()
-def play_fishing(command: str) -> str:
-    """fishing game command"""
-    return engine.cmd(command)
+@app.get("/cmd")
+def cmd(q: str):
+    return {"result": engine.cmd(q)}
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
-    mcp.run(transport="sse", host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=port)
