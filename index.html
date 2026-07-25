@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <title>Fishing</title>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 body { background:#fff; color:#111; font-family:-apple-system,'Helvetica Neue',sans-serif; height:100svh; display:flex; flex-direction:column; overflow:hidden; position:relative; }
 #main { display:flex; flex-direction:column; flex:1; overflow:hidden; }
 #topbar { display:flex; align-items:center; justify-content:space-between; padding:18px 20px 10px; border-bottom:1px solid #f0f0f0; flex-shrink:0; gap:12px; }
@@ -35,7 +35,6 @@ body { background:#fff; color:#111; font-family:-apple-system,'Helvetica Neue',s
 #cmd-input { flex:1; background:#f2f2f2; color:#111; border:none; border-radius:22px; padding:10px 16px; font-size:14px; font-family:monospace; outline:none; }
 #send-btn { background:#111; color:#fff; border:none; border-radius:22px; padding:10px 20px; font-size:14px; cursor:pointer; font-family:inherit; flex-shrink:0; }
 #send-btn:active { background:#333; }
-
 .fullpage { display:none; position:fixed; inset:0; background:#f2f2f7; z-index:200; flex-direction:column; overflow:hidden; }
 .fullpage.open { display:flex; }
 #settings-body { flex:1; overflow-y:auto; padding-bottom:max(40px,env(safe-area-inset-bottom)); }
@@ -57,7 +56,6 @@ body { background:#fff; color:#111; font-family:-apple-system,'Helvetica Neue',s
 .s-label { flex:1; font-size:16px; color:#111; }
 .s-arrow { color:#c7c7cc; }
 .s-arrow svg { width:16px; height:16px; }
-
 .fp-nav { display:flex; align-items:center; padding:56px 20px 10px; background:#f2f2f7; flex-shrink:0; gap:8px; }
 .fp-back { background:none; border:none; cursor:pointer; color:#007aff; font-size:16px; display:flex; align-items:center; gap:4px; padding:4px 0; font-family:inherit; }
 .fp-back svg { width:18px; height:18px; }
@@ -66,8 +64,6 @@ body { background:#fff; color:#111; font-family:-apple-system,'Helvetica Neue',s
 .subpage-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; color:#aaa; padding:60px 0; }
 .subpage-empty .ep-icon { font-size:48px; }
 .subpage-empty .ep-text { font-size:15px; }
-
-/* 商店 */
 .shop-search-wrap { position:sticky; top:0; background:#f2f2f7; padding:0 0 12px; z-index:5; }
 .shop-search { display:flex; align-items:center; background:#fff; border-radius:12px; padding:10px 14px; gap:8px; }
 .shop-search svg { width:16px; height:16px; color:#aaa; flex-shrink:0; }
@@ -82,8 +78,6 @@ body { background:#fff; color:#111; font-family:-apple-system,'Helvetica Neue',s
 .shop-desc { font-size:12px; color:#888; line-height:1.5; }
 .shop-price { font-size:14px; font-weight:700; color:#ff9500; flex-shrink:0; white-space:nowrap; }
 .shop-loading { text-align:center; color:#aaa; padding:40px 0; font-size:14px; }
-
-/* 钱包/MCP */
 .mcp-card { background:#fff; border-radius:14px; padding:20px; margin-bottom:16px; }
 .mcp-card h3 { font-size:15px; font-weight:600; color:#111; margin-bottom:6px; }
 .mcp-card p { font-size:13px; color:#888; margin-bottom:14px; line-height:1.5; }
@@ -99,7 +93,6 @@ body { background:#fff; color:#111; font-family:-apple-system,'Helvetica Neue',s
 </style>
 </head>
 <body>
-
 <div id="main">
   <div id="topbar">
     <div id="topbar-left">
@@ -133,7 +126,6 @@ body { background:#fff; color:#111; font-family:-apple-system,'Helvetica Neue',s
     <button id="send-btn" onclick="send()">发送</button>
   </div>
 </div>
-
 <div id="page-settings" class="fullpage">
   <div style="position:absolute;top:16px;right:20px;z-index:10;">
     <button class="icon-btn" onclick="closeSettings()">
@@ -179,7 +171,6 @@ body { background:#fff; color:#111; font-family:-apple-system,'Helvetica Neue',s
     </div>
   </div>
 </div>
-
 <div id="page-sub" class="fullpage">
   <div class="fp-nav">
     <button class="fp-back" onclick="closeSubpage()">
@@ -190,7 +181,6 @@ body { background:#fff; color:#111; font-family:-apple-system,'Helvetica Neue',s
   </div>
   <div class="subpage-body" id="subpage-body"></div>
 </div>
-
 <script>
 const output = document.getElementById('output');
 const input  = document.getElementById('cmd-input');
@@ -263,60 +253,142 @@ function openSubpage(key) {
   document.getElementById('page-sub').classList.add('open');
 }
 function closeSubpage() { document.getElementById('page-sub').classList.remove('open'); }
-
-// ── 商店 ──
-const BAIT_EMOJIS = { basic_worm:'🪱', red_worm:'🐛', glow_bait:'✨', oxygen:'🫧' };
-const BAIT_DESCS  = {
-  basic_worm: '最普通的蚯蚓，上手即用，适合在月光池塘和芦苇河练手。',
+const ITEM_DESCS = {
+  basic_worm: '最普通的蚯蚓，上手即用，适合新手练手。',
   red_worm:   '红色蚯蚓，诱鱼效果更好，稀有鱼概率小幅提升。',
   glow_bait:  '夜光饵，深水鱼和稀有鱼更容易上钩。',
   oxygen:     '氧气瓶，用于潜水远征，每瓶提供一单位下潜深度。',
 };
+const ITEM_EMOJI = {
+  basic_worm:'🪱', red_worm:'🐛', glow_bait:'✨', oxygen:'🫧',
+};
 
 let allShopItems = [];
+
+function parseShopText(text) {
+  const items = [];
+  for (const line of text.split('\n')) {
+    const m = line.match(/\[([^\]]+)\]\s+(.+?)\s+(\d+)\s*点/);
+    if (m) {
+      const id = m[1].trim();
+      const name = m[2].trim();
+      const price = parseInt(m[3]);
+      const descM = line.match(/[（(]([^）)]+)[）)]/);
+      const desc = descM ? descM[1] : (ITEM_DESCS[id] || '');
+      items.push({ id, name, price, desc });
+    }
+  }
+  return items;
+}
+
+function renderShopItems(items) {
+  const list = document.getElementById('shop-items-list');
+  if (!list) return;
+  if (items.length === 0) {
+    list.innerHTML = '<div class="shop-loading">没有找到相关物品</div>';
+    return;
+  }
+  list.innerHTML = items.map(item =>
+    '<div class="shop-item" onclick="buyItem(\'' + item.id + '\',\'' + item.name + '\')">' +
+    '<div class="shop-thumb">' + (ITEM_EMOJI[item.id] || '📦') + '</div>' +
+    '<div class="shop-info">' +
+    '<div class="shop-name">' + item.name + '</div>' +
+    '<div class="shop-desc">' + (item.desc || '暂无介绍') + '</div>' +
+    '</div>' +
+    '<div class="shop-price">' + (item.price > 0 ? item.price + '点' : '—') + '</div>' +
+    '</div>'
+  ).join('');
+}
+
+function filterShop(q) {
+  const kw = q.trim().toLowerCase();
+  if (!kw) { renderShopItems(allShopItems); return; }
+  renderShopItems(allShopItems.filter(i =>
+    i.name.toLowerCase().includes(kw) || i.id.toLowerCase().includes(kw) || (i.desc||'').toLowerCase().includes(kw)
+  ));
+}
 
 async function renderShop(body) {
   body.innerHTML =
     '<div class="shop-search-wrap">' +
     '<div class="shop-search">' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
-    '<input id="shop-search-input" placeholder="搜索鱼饵、氧气瓶..." oninput="filterShop(this.value)">' +
+    '<input id="shop-search-input" placeholder="搜索物品…" oninput="filterShop(this.value)">' +
     '</div></div>' +
     '<div class="shop-items" id="shop-items-list"><div class="shop-loading">加载中…</div></div>';
-
   try {
     const r = await fetch('/cmd?q=shop');
     const d = await r.json();
     allShopItems = parseShopText(d.result);
+    if (allShopItems.length === 0) {
+      allShopItems = Object.keys(ITEM_DESCS).map(id => ({
+        id, name: id, price: 0, desc: ITEM_DESCS[id]
+      }));
+    }
     renderShopItems(allShopItems);
   } catch(e) {
-    document.getElementById('shop-items-list').innerHTML = '<div class="shop-loading">加载失败</div>';
+    const l = document.getElementById('shop-items-list');
+    if (l) l.innerHTML = '<div class="shop-loading">加载失败</div>';
   }
 }
 
-function parseShopText(text) {
-  const items = [];
-  const lines = text.split('\n');
-  for (const line of lines) {
-    // 匹配格式：[id] 名字 xxx点 （其余信息）
-    const m = line.match(/\[([^\]]+)\]\s+(.+?)\s+(\d+)\s*点/);
-    if (m) {
-      const id   = m[1].trim();
-      const name = m[2].trim();
-      const price= parseInt(m[3]);
-      // 尝试从括号里取描述
-      const descM = line.match(/[（(]([^）)]+)[）)]/);
-      const desc = descM ? descM[1] : (BAIT_DESCS[id] || '');
-      items.push({ id, name, price, desc });
-    }
-  }
-  // 如果解析不到就回退到用内置描述展示已知物品
-  if (items.length === 0) {
-    return Object.entries(BAIT_DESCS).map(([id, desc]) => ({
-      id, name: id, price: 0, desc
-    }));
-  }
-  return items;
+async function buyItem(id, name) {
+  const qty = prompt('购买数量（' + name + '）:', '1');
+  if (!qty || isNaN(qty) || parseInt(qty) <= 0) return;
+  closeSubpage();
+  await send('buy ' + id + ' ' + qty);
+}
+function renderWallet(body) {
+  const total = lastStats ? lastStats.pts : '—';
+  const rows = ledger.length === 0
+    ? '<div class="wallet-row"><span class="label">暂无明细</span><span class="amount">—</span></div>'
+    : ledger.slice().reverse().map(e =>
+        '<div class="wallet-row"><span class="label">' + e.cmd + '</span>' +
+        '<span class="amount' + (e.diff < 0 ? ' neg' : '') + '">' + (e.diff > 0 ? '+' : '') + e.diff + ' pts</span></div>'
+      ).join('');
+  body.innerHTML = '<div class="mcp-card"><h3>当前余额</h3>' +
+    '<div style="font-size:36px;font-weight:700;color:#111;margin:8px 0 16px">' + total +
+    ' <span style="font-size:16px;color:#aaa">pts</span></div>' + rows + '</div>';
 }
 
-function renderShopItems(items)
+function renderBluetooth(body) {
+  const url = BASE + '/mcp/fishing';
+  body.innerHTML =
+    '<div class="mcp-card">' +
+    '<h3>AI 接入 · MCP 工具 <span class="mcp-badge">已上线</span></h3>' +
+    '<p>把下面的接口配置到 AI 的工具里，AI 就能直接操作这个钓鱼存档，和你共享进度。</p>' +
+    '<div style="font-size:12px;color:#aaa;margin-bottom:6px">指令接口（GET /mcp/fishing?q=指令）</div>' +
+    '<div class="mcp-url">' + url + '?q=cast</div>' +
+    '<button class="mcp-copy-btn" id="copybtn" onclick="copyMcp()">复制接口地址</button>' +
+    '</div>' +
+    '<div class="mcp-card"><h3>使用说明</h3>' +
+    '<p>参数 <code style="background:#f2f2f7;padding:2px 6px;border-radius:4px">q</code> 传入指令，如 <code style="background:#f2f2f7;padding:2px 6px;border-radius:4px">cast</code>、<code style="background:#f2f2f7;padding:2px 6px;border-radius:4px">status</code>、<code style="background:#f2f2f7;padding:2px 6px;border-radius:4px">buy basic_worm 5</code>，返回 JSON {"result":"..."}。</p>' +
+    '</div>';
+}
+
+function copyMcp() {
+  const url = BASE + '/mcp/fishing';
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('copybtn');
+    btn.textContent = '已复制！';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '复制接口地址'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+async function init() {
+  try {
+    const r = await fetch('/cmd?q=status');
+    const d = await r.json();
+    const s = parseStats(d.result);
+    const card = document.createElement('div'); card.className = 'msg-card';
+    card.textContent = cleanOutput(d.result);
+    const wrap = document.createElement('div'); wrap.className = 'msg-wrap';
+    wrap.appendChild(card); output.appendChild(wrap);
+    if (s) { updateTopbar(s); lastStats = s; }
+  } catch(e) { setTimeout(init, 2000); }
+}
+init();
+</script>
+</body>
+</html>
