@@ -141,7 +141,7 @@ HTML = """<!DOCTYPE html>
     display: flex;
     gap: 10px;
     padding: 10px 20px;
-    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
     border-top: 1px solid #f0f0f0;
     flex-shrink: 0;
   }
@@ -310,7 +310,6 @@ function parseStats(text) {
 }
 
 function cleanOutput(text) {
-  // 去掉末尾的📊 JSON行
   return text.replace(/\n?📊\s*\{.*\}\s*$/, '').trim();
 }
 
@@ -336,7 +335,6 @@ async function send(cmd) {
   if (!q) return;
   input.value = '';
   const statsBefore = lastStats;
-
   const wrap = document.createElement('div');
   wrap.className = 'msg-wrap';
   const card = document.createElement('div');
@@ -345,7 +343,6 @@ async function send(cmd) {
   wrap.appendChild(card);
   output.appendChild(wrap);
   output.scrollTop = output.scrollHeight;
-
   try {
     const r = await fetch('/cmd?q=' + encodeURIComponent(q));
     const d = await r.json();
@@ -386,7 +383,24 @@ function openSettings() {
   alert('设置页面即将上线');
 }
 
-send('status');
+async function init() {
+  try {
+    const r = await fetch('/cmd?q=status');
+    const d = await r.json();
+    const s = parseStats(d.result);
+    const card = document.createElement('div');
+    card.className = 'msg-card';
+    card.textContent = cleanOutput(d.result);
+    const wrap = document.createElement('div');
+    wrap.className = 'msg-wrap';
+    wrap.appendChild(card);
+    output.appendChild(wrap);
+    if (s) { updateTopbar(s); lastStats = s; }
+  } catch(e) {
+    setTimeout(init, 2000);
+  }
+}
+init();
 </script>
 </body>
 </html>"""
