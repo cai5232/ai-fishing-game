@@ -18,7 +18,7 @@ def cmd_api(q: str, user: str = "default"):
 
 @app.get("/mcp/fishing")
 def mcp_fishing(q: str):
-    return {"result": engine.cmd((q, "kiro")}
+    return {"result": engine.cmd((q,"kiro")}
 
 @app.get("/mcp/info")
 def mcp_info(request: Request):
