@@ -7,16 +7,16 @@ from fastapi.responses import HTMLResponse, JSONResponse
 
 app = FastAPI()
 
+@app.get("/", response_class=HTMLResponse)
+def root():
+    with open("index.html", "r", encoding="utf-8") as f:
+        return f.read()
+
 @app.get("/cmd")
 def cmd_api(q: str, user: str = "default"):
     engine._SAVE = "/data/fishing_save_{}.json".format(user)
     engine.S = None
     return {"result": engine.cmd(q)}
-
-
-@app.get("/cmd")
-def cmd(q: str, user: str = "default"):
-    return {"result": engine.cmd(q, user)}
 
 @app.get("/mcp/fishing")
 def mcp_fishing(q: str):
