@@ -319,7 +319,8 @@ async function send(cmd) {
   wrap.appendChild(card); output.appendChild(wrap);
   output.scrollTop = output.scrollHeight;
   try {
-    const r = await fetch('/cmd?q=' + encodeURIComponent(q));
+    const user = isKiroAccount() ? 'kiro' : 'yy';
+const r = await fetch('/cmd?q=' + encodeURIComponent(q) + '&user=' + user);
     const d = await r.json();
     const s = parseStats(d.result);
     card.textContent = cleanOutput(d.result);
