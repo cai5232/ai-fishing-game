@@ -550,8 +550,8 @@ async function renderShop(body) {
     '<input id="shop-search-input" placeholder="搜索物品…" oninput="filterShop(this.value)"></div></div>' +
     '<div class="shop-items" id="shop-items-list"><div class="shop-loading">加载中…</div></div>';
   try {
-    const r = await fetch('/cmd?q=shop');
-    const d = await r.json();
+    const user = isKiroAccount() ? 'kiro' : 'yy';
+    const r = await fetch('/cmd?q=shop&user=' + user);const d = await r.json();
     allShopItems = parseShopText(d.result);
     if (allShopItems.length === 0) {
       allShopItems = Object.keys(ITEM_DESCS).map(id=>({ id, name:id, price:0, desc:ITEM_DESCS[id] }));
@@ -583,7 +583,8 @@ function parseSellText(text) {
 async function renderSell(body) {
   body.innerHTML = '<div class="shop-loading">加载中…</div>';
   try {
-    const r = await fetch('/cmd?q=inventory');
+    const user = isKiroAccount() ? 'kiro' : 'yy';
+const r = await fetch('/cmd?q=inventory&user=' + user);
     const d = await r.json();
     const text = cleanOutput(d.result);
     const items = parseSellText(text);
