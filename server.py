@@ -89,7 +89,7 @@ async def mcp_post(request: Request):
         args = params.get("arguments", {})
         if name == "fishing_cmd":
             q = args.get("q", "status")
-            result = engine.cmd(q)
+            result = engine.cmd(q, "kiro")
             return JSONResponse({
                 "jsonrpc": "2.0", "id": req_id,
                 "result": {
