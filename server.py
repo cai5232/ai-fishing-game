@@ -13,8 +13,8 @@ def root():
         return f.read()
 
 @app.get("/cmd")
-def cmd(q: str):
-    return {"result": engine.cmd(q)}
+def cmd(q: str, user: str = "default"):
+    return {"result": engine.cmd(q, user)}
 
 @app.get("/mcp/fishing")
 def mcp_fishing(q: str):
