@@ -1226,7 +1226,6 @@ _DIVE_BRANCH_IDS = {e["id"] for e in DIVE_ENCOUNTERS if e.get("branch")}   # 大
 
 
 _SAVE = "/app/fishing_save.json"
-
 _IO_WARN = ""  # 存档读/写出问题时的一次性提示；cmd() 会把它贴在输出末尾，不再静默吞掉
 
 
