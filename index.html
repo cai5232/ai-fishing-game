@@ -66,7 +66,7 @@ body { background:#fff; color:#111; font-family:-apple-system,'Helvetica Neue',s
 .subpage-empty .ep-text { font-size:15px; }
 </style>
 <style>
-.shop-search-wrap { position:sticky; top:0; background:#f2f2f7; padding:0 0 12px; z-index:5; }
+.shop-search-wrap { padding:0 0 12px; }
 .shop-search { display:flex; align-items:center; background:#fff; border-radius:12px; padding:10px 14px; gap:8px; }
 .shop-search svg { width:16px; height:16px; color:#aaa; flex-shrink:0; }
 .shop-search input { flex:1; border:none; outline:none; font-size:14px; color:#111; background:transparent; font-family:inherit; }
@@ -128,9 +128,11 @@ body { background:#fff; color:#111; font-family:-apple-system,'Helvetica Neue',s
 .mcp-copy-btn:active { background:#0062cc; }
 .mcp-copy-btn.copied { background:#34c759; }
 .mcp-badge { display:inline-block; background:#34c75922; color:#34c759; font-size:11px; padding:2px 8px; border-radius:20px; margin-left:8px; font-weight:600; }
-.wallet-row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #f2f2f2; font-size:14px; }
-.wallet-row .label { color:#555; }
-.wallet-row .amount { font-weight:600; color:#111; }
+.wallet-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f2f2f2; font-size:14px; }
+.wallet-row-left { display:flex; flex-direction:column; gap:2px; }
+.wallet-row-type { font-size:11px; color:#aaa; }
+.wallet-row-label { color:#333; }
+.wallet-row .amount { font-weight:600; color:#111; white-space:nowrap; }
 .wallet-row .amount.neg { color:#e55; }
 </style>
 </head>
@@ -256,7 +258,6 @@ function switchAccount() {
   document.getElementById('account-avatar').textContent = a.avatar;
   document.getElementById('account-sub').textContent = a.sub;
 }
-
 function isKiroAccount() { return accounts[currentAccount].isKiro; }
 
 function parseStats(text) {
@@ -277,7 +278,10 @@ function updateTopbar(s) {
 function recordLedger(cmd, before, after) {
   if (!before || !after) return;
   const diff = (after.pts ?? 0) - (before.pts ?? 0);
-  if (diff !== 0) ledger.push({ cmd, diff });
+  if (diff !== 0) {
+    const type = diff < 0 ? '支出' : '收入';
+    ledger.push({ cmd, diff, type });
+  }
 }
 let lastStats = null;
 
@@ -324,7 +328,6 @@ const ITEM_DESCS = {
   glow_bait:'夜光饵，深水鱼和稀有鱼更容易上钩。',
   oxygen:'氧气瓶，用于潜水远征，每瓶提供一单位下潜深度。',
 };
-const ITEM_EMOJI = { basic_worm:'🪱', red_worm:'🐛', glow_bait:'✨', oxygen:'🫧' };
 let allShopItems = [];
 
 function parseShopText(text) {
@@ -384,6 +387,7 @@ async function buyItem(id, name) {
   closeSubpage();
   await send('buy ' + id + ' ' + qty);
 }
+
 function parseSellText(text) {
   const items = [];
   for (const line of text.split('\n')) {
@@ -397,7 +401,6 @@ function parseSellText(text) {
   }
   return items;
 }
-
 async function renderSell(body) {
   body.innerHTML = '<div class="shop-loading">加载中…</div>';
   try {
@@ -412,15 +415,12 @@ async function renderSell(body) {
     let html = '<button class="sell-all-btn" onclick="sellAll()">全部卖出</button>';
     html += '<div class="sell-total"><span class="sell-total-label">鱼篓总数</span><span class="sell-total-val">' +
       items.reduce((a,i)=>a+i.qty,0) + ' 条</span></div>';
-    html += items.map((item,idx) =>
+    html += items.map(item =>
       '<div class="sell-item">' +
       '<div class="sell-thumb"></div>' +
-      '<div class="sell-info">' +
-      '<div class="sell-name">' + item.name + '</div>' +
-      '<div class="sell-desc">' + (item.price>0 ? '单价 '+item.price+' 点' : '可出售') + '</div>' +
-      '</div>' +
-      '<div class="sell-right">' +
-      '<div class="sell-qty">× ' + item.qty + '</div>' +
+      '<div class="sell-info"><div class="sell-name">' + item.name + '</div>' +
+      '<div class="sell-desc">' + (item.price>0 ? '单价 '+item.price+' 点' : '可出售') + '</div></div>' +
+      '<div class="sell-right"><div class="sell-qty">× ' + item.qty + '</div>' +
       '<div class="sell-btns">' +
       '<button class="sell-btn one" onclick="sellOne(\'' + item.name + '\')">卖1条</button>' +
       '<button class="sell-btn all" onclick="sellAllOne(\'' + item.name + '\',' + item.qty + ')">全卖</button>' +
@@ -431,40 +431,102 @@ async function renderSell(body) {
     body.innerHTML = '<div class="subpage-empty"><div class="ep-icon">⚠️</div><div class="ep-text">加载失败</div></div>';
   }
 }
-
-async function sellOne(name) {
-  closeSubpage();
-  await send('sell ' + name + ' 1');
-}
-async function sellAllOne(name, qty) {
-  closeSubpage();
-  await send('sell ' + name + ' ' + qty);
-}
-async function sellAll() {
-  closeSubpage();
-  await send('sell all');
-}
+async function sellOne(name) { closeSubpage(); await send('sell ' + name + ' 1'); }
+async function sellAllOne(name, qty) { closeSubpage(); await send('sell ' + name + ' ' + qty); }
+async function sellAll() { closeSubpage(); await send('sell all'); }
 const FISH_DB = [
-  { id:'carp',        name:'鲤鱼',   type:'淡水鱼', desc:'最常见的淡水鱼，适应力强，几乎在所有水域都能钓到。肉质鲜美，是初学者最常见的收获。' },
-  { id:'crucian',     name:'鲫鱼',   type:'淡水鱼', desc:'体型小巧，行动敏捷，喜欢在浅水区活动。是新手练习的好目标。' },
-  { id:'catfish',     name:'鲶鱼',   type:'底栖鱼', desc:'昼伏夜出的底栖鱼类，喜欢藏在泥底和岩石下。力气很大，上钩后非常难拉。' },
-  { id:'bass',        name:'鲈鱼',   type:'淡水鱼', desc:'凶猛的掠食性鱼类，喜欢追逐小鱼。力气大，是钓鱼爱好者最喜欢的目标之一。' },
-  { id:'trout',       name:'鳟鱼',   type:'冷水鱼', desc:'只生活在清澈冷冽的山间溪流中，对水质要求极高，肉质鲜嫩。' },
-  { id:'salmon',      name:'三文鱼', type:'洄游鱼', desc:'会在江河和大海之间洄游，每年溯流而上产卵。是最珍贵的鱼类之一。' },
-  { id:'goldfish',    name:'金鱼',   type:'观赏鱼', desc:'由鲫鱼驯化而来的观赏鱼，颜色艳丽，在钓鱼中偶尔能见到野生的。' },
-  { id:'eel',         name:'鳗鱼',   type:'底栖鱼', desc:'身体细长如蛇，喜欢钻入泥沙中躲避。夜间活动，用腥味饵料效果更好。' },
-  { id:'pike',        name:'梭鱼',   type:'掠食鱼', desc:'流线型身体，速度极快的掠食者。牙齿锋利，咬住后很难挣脱。' },
-  { id:'clownfish',   name:'小丑鱼', type:'热带鱼', desc:'橙白相间的热带海鱼，通常与海葵共生。色彩鲜艳，是热带水域的代表性鱼类。' },
-  { id:'tuna',        name:'金枪鱼', type:'深海鱼', desc:'速度最快的鱼类之一，能在深海高速巡游。体型巨大，是最难钓到的鱼之一。' },
-  { id:'pufferfish',  name:'河豚',   type:'奇特鱼', desc:'遇到危险时会膨胀成球形，含有剧毒。钓到后需谨慎处理，价值极高。' },
+  {id:'carp',name:'鲤鱼',type:'淡水鱼',desc:'最常见的淡水鱼，适应力极强，几乎在所有水域都能钓到。肉质鲜美，是初学者最常见的收获。'},
+  {id:'crucian',name:'鲫鱼',type:'淡水鱼',desc:'体型小巧，行动敏捷，喜欢在浅水区活动。是新手练习的好目标，全年可钓。'},
+  {id:'grass_carp',name:'草鱼',type:'淡水鱼',desc:'以水草为食的大型淡水鱼，力气大，上钩后非常活跃，是垂钓爱好者的热门目标。'},
+  {id:'bighead',name:'鳙鱼',type:'淡水鱼',desc:'头部巨大，俗称"胖头鱼"，喜欢在水中上层游动，滤食浮游生物为生。'},
+  {id:'silver_carp',name:'白鲢',type:'淡水鱼',desc:'善于跳跃，受到惊扰时会跃出水面。喜欢在水面附近活动，常成群出没。'},
+  {id:'catfish',name:'鲶鱼',type:'底栖鱼',desc:'昼伏夜出的底栖鱼类，喜欢藏在泥底和岩石下。力气很大，上钩后非常难拉。'},
+  {id:'bass',name:'鲈鱼',type:'淡水鱼',desc:'凶猛的掠食性鱼类，喜欢追逐小鱼。力气大，是钓鱼爱好者最喜欢的目标之一。'},
+  {id:'trout',name:'鳟鱼',type:'冷水鱼',desc:'只生活在清澈冷冽的山间溪流中，对水质要求极高，肉质鲜嫩细腻。'},
+  {id:'salmon',name:'三文鱼',type:'洄游鱼',desc:'会在江河和大海之间洄游，每年溯流而上产卵。是最珍贵的鱼类之一。'},
+  {id:'eel',name:'鳗鱼',type:'底栖鱼',desc:'身体细长如蛇，喜欢钻入泥沙中躲避。夜间活动，用腥味饵料效果更好。'},
+  {id:'pike',name:'梭鱼',type:'掠食鱼',desc:'流线型身体，速度极快的掠食者。牙齿锋利，咬住后很难挣脱。'},
+  {id:'clownfish',name:'小丑鱼',type:'热带鱼',desc:'橙白相间的热带海鱼，通常与海葵共生。色彩鲜艳，是热带水域的代表性鱼类。'},
+  {id:'tuna',name:'金枪鱼',type:'深海鱼',desc:'速度最快的鱼类之一，能在深海高速巡游。体型巨大，是最难钓到的鱼之一。'},
+  {id:'pufferfish',name:'河豚',type:'奇特鱼',desc:'遇到危险时会膨胀成球形，含有剧毒。钓到后需谨慎处理，价值极高。'},
+  {id:'goldfish',name:'金鱼',type:'观赏鱼',desc:'由鲫鱼驯化而来的观赏鱼，颜色艳丽，在钓鱼中偶尔能见到野生的。'},
+  {id:'koi',name:'锦鲤',type:'观赏鱼',desc:'花色绚丽的观赏鱼，被视为好运的象征。野生锦鲤极为罕见，价值连城。'},
+  {id:'arowana',name:'龙鱼',type:'观赏鱼',desc:'被称为"活化石"，体型修长如龙。是极其珍贵的观赏鱼，野生数量稀少。'},
+  {id:'swordfish',name:'旗鱼',type:'深海鱼',desc:'拥有长而尖的吻部，是海洋中速度最快的鱼之一。体型巨大，极难钓获。'},
+  {id:'shark',name:'鲨鱼',type:'深海鱼',desc:'海洋中的顶级掠食者，嗅觉极为灵敏。钓到鲨鱼是极其罕见的成就。'},
+  {id:'marlin',name:'马林鱼',type:'深海鱼',desc:'体型巨大的深海猎手，上钩后会拼命挣扎跳跃。是深海垂钓的终极目标。'},
+  {id:'flounder',name:'比目鱼',type:'底栖鱼',desc:'两只眼睛长在同一侧的奇特鱼类，平躺在海底沙地上等待猎物经过。'},
+  {id:'cod',name:'鳕鱼',type:'冷水鱼',desc:'生活在寒冷深海中的重要经济鱼类，肉质洁白鲜嫩，是全球最受欢迎的食用鱼之一。'},
+  {id:'herring',name:'鲱鱼',type:'冷水鱼',desc:'喜欢成群结队活动，常常形成壮观的鱼群。是北大西洋最重要的渔业资源之一。'},
+  {id:'mackerel',name:'鲭鱼',type:'近海鱼',desc:'游速极快的近海鱼类，肉质富含油脂，味道鲜美。常在水面附近高速追逐小鱼。'},
+  {id:'sea_bass',name:'海鲈鱼',type:'近海鱼',desc:'生活在近海礁石区的掠食性鱼类，是海钓爱好者最喜欢的目标鱼种之一。'},
+  {id:'red_snapper',name:'红鲷鱼',type:'近海鱼',desc:'体色鲜红的美丽鱼类，生活在珊瑚礁附近。肉质细嫩，是高档餐厅的常客。'},
+  {id:'grouper',name:'石斑鱼',type:'近海鱼',desc:'喜欢躲藏在礁石缝隙中的伏击猎手，力气极大。是名贵的食用鱼类。'},
+  {id:'pompano',name:'鲳鱼',type:'近海鱼',desc:'体型扁平、银光闪闪的近海鱼类，游姿优雅。肉质鲜美细嫩，深受食客喜爱。'},
+  {id:'yellowtail',name:'黄尾鱼',type:'近海鱼',desc:'尾部呈鲜黄色的美丽鱼类，游速极快。在近海和远洋之间迁徙，是垂钓的热门目标。'},
+  {id:'amberjack',name:'蛳鱼',type:'近海鱼',desc:'体型健壮的掠食性鱼类，力气惊人。上钩后会进行长时间的拉锯战，考验钓者的耐力。'},
+  {id:'tilapia',name:'罗非鱼',type:'淡水鱼',desc:'适应能力极强的热带淡水鱼，能在各种水质条件下存活。繁殖力强，是重要的养殖鱼类。'},
+  {id:'perch',name:'河鲈',type:'淡水鱼',desc:'身上有黑色竖纹的美丽淡水鱼，喜欢在芦苇丛中活动。肉质鲜美，是欧洲最受欢迎的淡水鱼之一。'},
+  {id:'zander',name:'梭鲈',type:'淡水鱼',desc:'欧洲最珍贵的淡水鱼之一，眼睛在黑暗中能发光。喜欢在深水区活动，是垂钓高手的目标。'},
+  {id:'bream',name:'鳊鱼',type:'淡水鱼',desc:'体型侧扁的淡水鱼，喜欢在水草丰茂的湖泊中活动。性格温顺，适合休闲垂钓。'},
+  {id:'roach',name:'欧鳊',type:'淡水鱼',desc:'欧洲常见的淡水鱼，银色鳞片在阳光下闪闪发光。喜欢成群活动，常见于河流和湖泊。'},
+  {id:'tench',name:'丁桂鱼',type:'淡水鱼',desc:'体色深绿近黑的淡水鱼，喜欢在泥底的静水中生活。生命力顽强，离水后能存活较长时间。'},
+  {id:'chub',name:'欧鲌',type:'淡水鱼',desc:'体型流线的淡水鱼，喜欢在急流中活动。警觉性极高，很难接近，是考验钓技的鱼种。'},
+  {id:'dace',name:'鲦鱼',type:'淡水鱼',desc:'小型淡水鱼，喜欢在清澈的溪流中成群游动。银色的鱼鳞在水中闪烁，非常美丽。'},
+  {id:'bleak',name:'鳑鲏',type:'淡水鱼',desc:'小巧玲珑的淡水鱼，繁殖期雄鱼会展现出绚丽的婚姻色。常被用作垂钓的活饵。'},
+  {id:'rudd',name:'红眼鱼',type:'淡水鱼',desc:'眼睛呈红色的美丽淡水鱼，喜欢在水面附近活动。常与欧鳊混群，是欧洲常见的垂钓对象。'},
+  {id:'asp',name:'欧鳡',type:'掠食鱼',desc:'淡水中的凶猛掠食者，会在水面追逐小鱼，激起壮观的水花。是欧洲钓手最喜爱的目标之一。'},
+  {id:'burbot',name:'江鳕',type:'底栖鱼',desc:'淡水中唯一的鳕形目鱼类，喜欢在寒冷的深水区活动。冬季是垂钓江鳕的最佳季节。'},
+  {id:'wels',name:'欧洲鲶',type:'底栖鱼',desc:'欧洲最大的淡水鱼，体长可超过2米。力气惊人，上钩后会进行极为激烈的挣扎。'},
+  {id:'sterlet',name:'小鲟',type:'洄游鱼',desc:'鲟鱼家族中体型最小的成员，是活化石级别的古老鱼类。野生数量稀少，极为珍贵。'},
+  {id:'sturgeon',name:'鲟鱼',type:'洄游鱼',desc:'存活了数亿年的古老鱼类，可产出名贵的鱼子酱。野生鲟鱼极为罕见，钓到是极大的荣耀。'},
+  {id:'lamprey',name:'七鳃鳗',type:'奇特鱼',desc:'没有颌骨的原始鱼类，用吸盘状的嘴附着在其他鱼身上。是地球上最古老的脊椎动物之一。'},
+  {id:'mudfish',name:'泥鳅',type:'底栖鱼',desc:'喜欢在泥泞的水底钻行，能用皮肤呼吸。生命力极强，即使水体缺氧也能存活。'},
+  {id:'loach',name:'花鳅',type:'底栖鱼',desc:'体表有美丽花纹的小型底栖鱼类，喜欢藏在石头缝隙中。对水质变化非常敏感，常被用作天气预报。'},
+  {id:'snakehead',name:'乌鳢',type:'掠食鱼',desc:'俗称"黑鱼"，凶猛的淡水掠食者。能在陆地上短距离爬行，生命力极为顽强。'},
+  {id:'mandarin_fish',name:'鳜鱼',type:'掠食鱼',desc:'背部有美丽花纹的名贵淡水鱼，只吃活饵。肉质极为鲜美，是"松鼠鳜鱼"的主角。'},
+  {id:'yellowfish',name:'黄颡鱼',type:'底栖鱼',desc:'俗称"昂刺鱼"，背鳍和胸鳍有锋利的硬刺。肉质鲜嫩，是颇受欢迎的食用鱼类。'},
+  {id:'whitefish',name:'白鱼',type:'冷水鱼',desc:'生活在高原冷水湖中的珍贵鱼类，肉质洁白细嫩。是高海拔地区最具代表性的鱼种之一。'},
+  {id:'mahseer',name:'结鱼',type:'洄游鱼',desc:'南亚最受追捧的淡水游钓鱼种，体型巨大，力气惊人。在湍急的山间河流中与之搏斗是终极挑战。'},
+  {id:'taimen',name:'哲罗鲑',type:'冷水鱼',desc:'西伯利亚最大的淡水鱼，是鲑科鱼类中的巨人。极度濒危，钓到后通常需要放生。'},
+  {id:'huchen',name:'多瑙哲罗',type:'冷水鱼',desc:'多瑙河流域特有的大型鲑科鱼类，是欧洲最珍贵的淡水鱼之一。冬季在急流中垂钓方可遇见。'},
+  {id:'grayling',name:'茴鱼',type:'冷水鱼',desc:'背鳍高大如帆的美丽冷水鱼，喜欢在清澈的山间溪流中活动。被誉为"溪流女王"。'},
+  {id:'char',name:'红点鲑',type:'冷水鱼',desc:'体侧有美丽红点的冷水鱼，生活在极寒的北极水域。是极地探险者梦寐以求的钓获。'},
+  {id:'inconnu',name:'白鲑',type:'冷水鱼',desc:'北极地区的大型冷水鱼，在因纽特人的文化中占有重要地位。肉质丰厚，富含油脂。'},
+  {id:'pike_perch',name:'白斑狗鱼',type:'掠食鱼',desc:'北方水域的顶级掠食者，牙齿锋利如刀。体表有美丽的斑纹，是冰钓的热门目标。'},
+  {id:'ide',name:'圆腹雅罗鱼',type:'淡水鱼',desc:'春季产卵时会聚集在浅滩，形成壮观的景象。繁殖期雄鱼体色会变得鲜艳亮丽。'},
+  {id:'nase',name:'鼻鱼',type:'淡水鱼',desc:'吻部向下弯曲，专门用来刮食岩石上的藻类。喜欢在激流中活动，对水质要求很高。'},
+  {id:'barbel',name:'须鲃',type:'淡水鱼',desc:'吻部有四根触须的底栖淡水鱼，喜欢在砾石底的急流中觅食。力气出奇地大。'},
+  {id:'vimba',name:'文波鱼',type:'淡水鱼',desc:'东欧河流中的常见鱼类，喜欢在水底觅食。繁殖期会大规模洄游，场面壮观。'},
+  {id:'blicca',name:'银鲷',type:'淡水鱼',desc:'外形与鳊鱼相似，常与鳊鱼混居。银色的鳞片非常光亮，在水中如同一枚硬币。'},
+  {id:'sabrefish',name:'刀鱼',type:'淡水鱼',desc:'体型侧扁如刀的淡水鱼，游速极快。常在水面附近追逐昆虫，是飞钓的好目标。'},
+  {id:'bitterling',name:'苦味鱼',type:'淡水鱼',desc:'会把卵产在河蚌体内的奇特小鱼。繁殖期雄鱼色彩非常鲜艳，如同一颗游动的宝石。'},
+  {id:'spined_loach',name:'刺泥鳅',type:'底栖鱼',desc:'眼睛下方有可活动硬刺的泥鳅，遇到天气变化时会特别活跃，可作为天气预报指示。'},
+  {id:'stone_loach',name:'石泥鳅',type:'底栖鱼',desc:'喜欢藏在溪流石头下的小型底栖鱼类，用触须在石缝中寻找食物。对水质要求极高。'},
+  {id:'weatherfish',name:'气候鱼',type:'底栖鱼',desc:'对气压变化极为敏感，暴风雨前会变得异常活跃。在欧洲曾被当作天气预报工具饲养。'},
+  {id:'ruffe',name:'河鲈',type:'淡水鱼',desc:'背鳍有锋利刺的小型淡水鱼，适应能力极强。喜欢在深水区的泥底觅食，昼伏夜出。'},
+  {id:'bullhead',name:'杜父鱼',type:'底栖鱼',desc:'头部扁平宽大的底栖鱼类，喜欢藏在石头下。体色与环境融为一体，是天生的伪装高手。'},
+  {id:'streber',name:'史崔博虾虎',type:'底栖鱼',desc:'多瑙河特有的珍稀底栖鱼类，生活在水流湍急的砾石底河床。是极为濒危的物种。'},
+  {id:'zingel',name:'津格尔鱼',type:'底栖鱼',desc:'多瑙河特有的神秘底栖鱼类，极为罕见。生活在水流湍急的深水区，几乎无人钓获过。'},
+  {id:'schraetzer',name:'施莱策鱼',type:'底栖鱼',desc:'体侧有金色条纹的美丽底栖鱼类，多瑙河特有种。种群数量稀少，是珍贵的钓获。'},
+  {id:'minnow',name:'米诺鱼',type:'淡水鱼',desc:'溪流中最常见的小型鱼类，繁殖期雄鱼会长出红色的婚姻色。常被当作路亚钓的拟饵原型。'},
+  {id:'gudgeon',name:'鰕虎鱼',type:'底栖鱼',desc:'喜欢在河底砾石间活动的小型底栖鱼。触须灵敏，能在浑浊的水中准确找到食物。'},
+  {id:'topmouth_gudgeon',name:'麦穗鱼',type:'淡水鱼',desc:'适应能力超强的小型淡水鱼，能在极度恶劣的水质中存活。食性杂，是入侵性极强的物种。'},
+  {id:'sunbleak',name:'太阳鱼',type:'淡水鱼',desc:'鳞片在阳光下会闪烁彩虹光芒的美丽小鱼。喜欢在阳光充足的浅水区活动。'},
+  {id:'alburnoides',name:'条纹鳐',type:'淡水鱼',desc:'体侧有清晰黑色条纹的小型淡水鱼，喜欢在水流缓慢的河段活动。对水质极为敏感。'},
+  {id:'moderlieschen',name:'欧洲细鳊',type:'淡水鱼',desc:'体型极为纤细的小型淡水鱼，常在水面附近游动。喜欢追逐落在水面的小昆虫。'},
+  {id:'spirit_fish',name:'幽灵鱼',type:'奇特鱼',desc:'传说中生活在最深处的神秘鱼类，通体透明，能反射周围的光线。极少有人见过真身。'},
+  {id:'golden_carp',name:'黄金鲤',type:'奇特鱼',desc:'全身金黄色的变异鲤鱼，极为罕见。在古代被视为神鱼，能带来好运与财富。'},
+  {id:'thunder_eel',name:'雷鳗',type:'奇特鱼',desc:'能放出强烈电流的神秘鳗鱼，电力足以击晕成年人。生活在最深的水底，极难钓获。'},
+  {id:'moonfish',name:'月光鱼',type:'奇特鱼',desc:'只在满月之夜才会出现的神秘鱼类，体表会发出柔和的蓝色荧光，美丽而神秘。'},
+  {id:'ancient_turtle',name:'古龟鱼',type:'奇特鱼',desc:'拥有龟壳状硬甲的上古鱼类，据说已存活了数千万年。每次出现都预示着不寻常的事件。'},
 ];
-
 let encFilter = 'all';
 let encUnlocked = new Set();
 
 async function renderEncyclopedia(body) {
   if (isKiroAccount()) {
-    encUnlocked = new Set(['carp','bass','trout','salmon','tuna']);
+    encUnlocked = new Set(['carp','bass','trout','salmon','tuna','goldfish','koi','arowana','spirit_fish','golden_carp']);
   } else {
     try {
       const r = await fetch('/cmd?q=encyclopedia');
@@ -482,41 +544,45 @@ async function renderEncyclopedia(body) {
 
 function renderEncBody(body) {
   let html =
-    '<div class="shop-search-wrap">' +
-    '<div class="shop-search">' +
+    '<div class="shop-search-wrap"><div class="shop-search">' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
     '<input id="enc-search-input" placeholder="搜索鱼类…" oninput="filterEnc(this.value)">' +
-    '</div>' +
+    '</div></div>' +
     '<div class="enc-filter">' +
     '<button class="enc-filter-btn' + (encFilter==='unlocked'?' active':'') + '" onclick="setEncFilter(\'unlocked\')">已解锁</button>' +
     '<button class="enc-filter-btn' + (encFilter==='locked'?' active':'') + '" onclick="setEncFilter(\'locked\')">未解锁</button>' +
-    '</div></div>' +
+    '</div>' +
     '<div class="enc-grid" id="enc-grid"></div>';
   body.innerHTML = html;
-  renderEncGrid(FISH_DB, '');
+  renderEncGrid(FISH_DB);
 }
 
 function setEncFilter(f) {
   encFilter = encFilter === f ? 'all' : f;
   const body = document.getElementById('subpage-body');
   renderEncBody(body);
+  const searchInput = document.getElementById('enc-search-input');
+  if (searchInput && searchInput.value) filterEnc(searchInput.value);
 }
 
 function filterEnc(q) {
   const kw = q.trim().toLowerCase();
-  const filtered = FISH_DB.filter(f =>
-    f.name.toLowerCase().includes(kw) || f.type.toLowerCase().includes(kw)
-  );
-  renderEncGrid(filtered, kw);
+  const filtered = kw
+    ? FISH_DB.filter(f => f.name.toLowerCase().includes(kw) || f.type.toLowerCase().includes(kw))
+    : FISH_DB;
+  renderEncGrid(filtered);
 }
 
-function renderEncGrid(list, kw) {
+function renderEncGrid(list) {
   let items = list;
   if (encFilter === 'unlocked') items = list.filter(f => encUnlocked.has(f.id));
   if (encFilter === 'locked')   items = list.filter(f => !encUnlocked.has(f.id));
   const grid = document.getElementById('enc-grid');
   if (!grid) return;
-  if (items.length === 0) { grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#aaa;padding:40px 0">暂无数据</div>'; return; }
+  if (items.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#aaa;padding:40px 0">暂无数据</div>';
+    return;
+  }
   grid.innerHTML = items.map(f => {
     const locked = !encUnlocked.has(f.id);
     return '<div class="enc-card" onclick="openEncModal(\'' + f.id + '\')">' +
@@ -530,12 +596,12 @@ function openEncModal(id) {
   const f = FISH_DB.find(x => x.id === id);
   if (!f) return;
   const locked = !encUnlocked.has(f.id);
-  document.getElementById('enc-modal-name').textContent   = locked ? '???' : f.name;
-  document.getElementById('enc-modal-type').textContent   = locked ? '未知' : f.type;
+  document.getElementById('enc-modal-name').textContent = locked ? '???' : f.name;
+  document.getElementById('enc-modal-type').textContent = locked ? '未知类型' : f.type;
   const statusEl = document.getElementById('enc-modal-status');
-  statusEl.textContent  = locked ? '未解锁' : '已解锁';
-  statusEl.className    = 'enc-modal-status ' + (locked ? 'locked' : 'unlocked');
-  document.getElementById('enc-modal-desc').textContent   = locked ? '钓到这种鱼后解锁详细信息。' : f.desc;
+  statusEl.textContent = locked ? '未解锁' : '已解锁';
+  statusEl.className = 'enc-modal-status ' + (locked ? 'locked' : 'unlocked');
+  document.getElementById('enc-modal-desc').textContent = locked ? '钓到这种鱼后解锁详细信息。' : f.desc;
   document.getElementById('enc-modal-bg').classList.add('open');
 }
 function closeEncModal(e) {
@@ -546,14 +612,24 @@ function renderWallet(body) {
   const total = lastStats ? lastStats.pts : '—';
   const owner = isKiroAccount() ? '小克' : '钓鱼佬';
   const rows = ledger.length === 0
-    ? '<div class="wallet-row"><span class="label">暂无明细</span><span class="amount">—</span></div>'
-    : ledger.slice().reverse().map(e =>
-        '<div class="wallet-row"><span class="label">' + e.cmd + '</span>' +
-        '<span class="amount' + (e.diff<0?' neg':'') + '">' + (e.diff>0?'+':'') + e.diff + ' pts</span></div>'
-      ).join('');
-  body.innerHTML = '<div class="mcp-card"><h3>' + owner + ' 的钱包</h3>' +
-    '<div style="font-size:36px;font-weight:700;color:#111;margin:8px 0 16px">' + total +
-    ' <span style="font-size:16px;color:#aaa">pts</span></div>' + rows + '</div>';
+    ? '<div class="wallet-row"><div class="wallet-row-left"><span class="wallet-row-label">暂无明细</span></div><span class="amount">—</span></div>'
+    : ledger.slice().reverse().map(e => {
+        const label = e.cmd;
+        const amtStr = (e.diff > 0 ? '+' : '') + e.diff + '¥';
+        return '<div class="wallet-row">' +
+          '<div class="wallet-row-left">' +
+          '<span class="wallet-row-type">' + e.type + '</span>' +
+          '<span class="wallet-row-label">' + label + '</span>' +
+          '</div>' +
+          '<span class="amount' + (e.diff<0?' neg':'') + '">' + amtStr + '</span>' +
+          '</div>';
+      }).join('');
+  body.innerHTML =
+    '<div class="mcp-card"><h3>' + owner + ' 的钱包</h3>' +
+    '<div style="font-size:36px;font-weight:700;color:#111;margin:8px 0 4px">' + total +
+    ' <span style="font-size:16px;color:#aaa">¥</span></div>' +
+    '<div style="font-size:12px;color:#aaa;margin-bottom:16px">当前余额</div>' +
+    rows + '</div>';
 }
 
 function renderBluetooth(body) {
