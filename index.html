@@ -86,7 +86,7 @@ body { background:#fff; color:#111; font-family:-apple-system,'Helvetica Neue',s
 .sell-name { font-size:15px; font-weight:600; color:#111; margin-bottom:3px; }
 .sell-desc { font-size:12px; color:#888; line-height:1.5; }
 .sell-right { display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0; }
-.sell-qty { font-size:13px; color:#aaa; }
+.sell-qty { font-size:11px; color:#bbb; }
 .sell-btns { display:flex; gap:6px; }
 .sell-btn { border:none; border-radius:8px; padding:5px 10px; font-size:12px; cursor:pointer; font-family:inherit; }
 .sell-btn.one { background:#f2f2f2; color:#333; }
@@ -137,9 +137,8 @@ body { background:#fff; color:#111; font-family:-apple-system,'Helvetica Neue',s
 .map-season-bar { display:flex; gap:8px; margin-bottom:14px; }
 .map-season-btn { flex:1; background:#fff; border:1.5px solid #e0e0e0; border-radius:20px; padding:6px 0; font-size:13px; color:#555; cursor:pointer; font-family:inherit; text-align:center; }
 .map-season-btn.active { border-color:#007aff; color:#007aff; font-weight:600; background:#e8f0ff; }
-.map-item { background:#fff; border-radius:14px; padding:14px; display:flex; gap:12px; align-items:center; margin-bottom:10px; cursor:pointer; position:relative; }
+.map-item { background:#fff; border-radius:14px; padding:14px; display:flex; gap:12px; align-items:center; margin-bottom:10px; cursor:pointer; }
 .map-item:active { background:#f5f5f5; }
-.map-item.locked { opacity:0.6; cursor:default; }
 .map-thumb { width:56px; height:56px; border-radius:10px; flex-shrink:0; }
 .map-info { flex:1; min-width:0; }
 .map-name { font-size:15px; font-weight:600; color:#111; margin-bottom:3px; }
@@ -147,7 +146,6 @@ body { background:#fff; color:#111; font-family:-apple-system,'Helvetica Neue',s
 .map-right { display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; }
 .map-cost { font-size:12px; color:#ff9500; font-weight:600; white-space:nowrap; }
 .map-current { font-size:11px; color:#34c759; font-weight:600; white-space:nowrap; }
-.map-lock-badge { font-size:11px; color:#aaa; white-space:nowrap; }
 .map-season-tag { display:inline-block; font-size:10px; padding:2px 7px; border-radius:10px; margin-right:4px; margin-bottom:2px; }
 .map-season-tag.春 { background:#fff0f0; color:#e07070; }
 .map-season-tag.夏 { background:#f0fff0; color:#50a050; }
@@ -432,23 +430,20 @@ const SEASON_COLORS = { 春:'#e07070', 夏:'#50a050', 秋:'#c08030', 冬:'#6080c
 let mapSeasonFilter = '全年';
 
 function renderMap(body) {
-  const currentLoc = lastStats ? lastStats.loc : null;
   const currentSea = lastStats ? lastStats.sea : '春';
   mapSeasonFilter = currentSea || '全年';
-
   const seasons = ['全年','春','夏','秋','冬'];
-  let html = '<div class="shop-search-wrap"><div class="shop-search">' +
+  let html =
+    '<div class="shop-search-wrap"><div class="shop-search">' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
     '<input id="map-search-input" placeholder="搜索地点…" oninput="filterMap(this.value)">' +
-    '</div></div>';
-
-  html += '<div class="map-season-bar">' +
+    '</div></div>' +
+    '<div class="map-season-bar">' +
     seasons.map(s =>
       '<button class="map-season-btn' + (mapSeasonFilter===s?' active':'') +
       '" onclick="setMapSeason(\'' + s + '\')">' + s + '</button>'
-    ).join('') + '</div>';
-
-  html += '<div id="map-list"></div>';
+    ).join('') + '</div>' +
+    '<div id="map-list"></div>';
   body.innerHTML = html;
   renderMapList(MAP_DB, '');
 }
@@ -488,7 +483,7 @@ function renderMapList(list, kw) {
       '<span class="map-season-tag ' + s + '">' + s + '</span>'
     ).join('');
     const fishHint = m.fish.slice(0,3).join('、') + (m.fish.length>3 ? '等' : '');
-    return '<div class="map-item' + (isLocked?' locked':'') + '" onclick="gotoMap(\'' + m.id + '\',\'' + m.name + '\',' + m.cost + ')">' +
+    return '<div class="map-item" onclick="gotoMap(\'' + m.id + '\',\'' + m.name + '\',' + m.cost + ')">' +
       '<div class="map-thumb" style="background:' + m.color + '"></div>' +
       '<div class="map-info">' +
       '<div class="map-name">' + m.name + '</div>' +
@@ -576,16 +571,14 @@ async function buyItem(id, name) {
 function parseSellText(text) {
   const items = [];
   for (const line of text.split('\n')) {
-    const m = line.match(/(.+?)\s*[xX×]\s*(\d+)/);
+    const m = line.match(/^\s*(c_\d+)\s+(.+?)\s+([\d.]+cm)\s+(\d+)点/);
     if (m) {
-      const name = m[1].trim(), qty = parseInt(m[2]);
-      const priceM = line.match(/(\d+)\s*点/);
-      const price = priceM ? parseInt(priceM[1]) : 0;
-      items.push({ name, qty, price });
+      items.push({ id:m[1].trim(), name:m[2].trim(), size:m[3].trim(), price:parseInt(m[4]) });
     }
   }
   return items;
 }
+
 async function renderSell(body) {
   body.innerHTML = '<div class="shop-loading">加载中…</div>';
   try {
@@ -599,16 +592,17 @@ async function renderSell(body) {
     }
     let html = '<button class="sell-all-btn" onclick="sellAll()">全部卖出</button>';
     html += '<div class="sell-total"><span class="sell-total-label">鱼篓总数</span><span class="sell-total-val">' +
-      items.reduce((a,i)=>a+i.qty,0) + ' 条</span></div>';
+      items.length + ' 条</span></div>';
     html += items.map(item =>
       '<div class="sell-item">' +
       '<div class="sell-thumb"></div>' +
       '<div class="sell-info"><div class="sell-name">' + item.name + '</div>' +
-      '<div class="sell-desc">' + (item.price>0 ? '单价 '+item.price+' 点' : '可出售') + '</div></div>' +
-      '<div class="sell-right"><div class="sell-qty">× ' + item.qty + '</div>' +
+      '<div class="sell-desc">' + item.size + ' · ' + item.price + ' 点</div></div>' +
+      '<div class="sell-right">' +
+      '<div class="sell-qty">' + item.id + '</div>' +
       '<div class="sell-btns">' +
-      '<button class="sell-btn one" onclick="sellOne(\'' + item.name + '\')">卖1条</button>' +
-      '<button class="sell-btn all" onclick="sellAllOne(\'' + item.name + '\',' + item.qty + ')">全卖</button>' +
+      '<button class="sell-btn one" onclick="sellOne(\'' + item.id + '\')">卖掉</button>' +
+      '<button class="sell-btn all" onclick="sellAllOne(\'' + item.name + '\')">全卖同类</button>' +
       '</div></div></div>'
     ).join('');
     body.innerHTML = html;
@@ -616,8 +610,8 @@ async function renderSell(body) {
     body.innerHTML = '<div class="subpage-empty"><div class="ep-icon">⚠️</div><div class="ep-text">加载失败</div></div>';
   }
 }
-async function sellOne(name) { closeSubpage(); await send('sell ' + name + ' 1'); }
-async function sellAllOne(name, qty) { closeSubpage(); await send('sell ' + name + ' ' + qty); }
+async function sellOne(id) { closeSubpage(); await send('sell ' + id); }
+async function sellAllOne(name) { closeSubpage(); await send('sell species ' + name); }
 async function sellAll() { closeSubpage(); await send('sell all'); }
 const FISH_DB = [
   {id:'carp',name:'鲤鱼',type:'淡水鱼',desc:'最常见的淡水鱼，适应力极强，几乎在所有水域都能钓到。肉质鲜美，是初学者最常见的收获。'},
