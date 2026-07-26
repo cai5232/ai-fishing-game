@@ -2050,7 +2050,7 @@ def _run_one(line):
         # 公开 API 兜底：任何意外（含格式错）都返回友好文字，绝不向调用方抛栈
         return "这条指令没读懂（%s）。看 cmd('help')，例：buy basic_worm 2 / cast 10 stop=rare。" % e
     
-    ""def cmd(line="", user="default"):
+    def cmd(line="", user="default"):
     global _SAVE, S
 
     global _SAVE, S
