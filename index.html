@@ -705,12 +705,16 @@ const FISH_DB = [
 let encFilter = 'all';
 let encUnlocked = new Set();
 
-async function renderEncyclopedia(body) {
-  if (isKiroAccount()) {
-    encUnlocked = new Set(['carp','bass','trout','salmon','tuna','goldfish','koi','arowana','spirit_fish','golden_carp']);
-  } else {
-    try {
-      const r = await fetch('/cmd?q=encyclopedia');
+try {
+  const user = isKiroAccount() ? 'kiro' : 'yy';
+  const r = await fetch('/cmd?q=encyclopedia&user=' + user);
+  const d = await r.json();
+  const text = d.result;
+  encUnlocked = new Set();
+  for (const fish of FISH_DB) {
+    if (text.includes(fish.name) || text.includes(fish.id)) encUnlocked.add(fish.id);
+  }
+} catch(e) { encUnlocked = new Set(); }
       const d = await r.json();
       const text = d.result;
       encUnlocked = new Set();
