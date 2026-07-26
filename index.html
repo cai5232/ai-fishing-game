@@ -280,6 +280,7 @@ function switchAccount() {
   document.getElementById('account-name').textContent = a.name;
   document.getElementById('account-avatar').textContent = a.avatar;
   document.getElementById('account-sub').textContent = a.sub;
+  send('status'); 
 }
 function isKiroAccount() { return accounts[currentAccount].isKiro; }
 
