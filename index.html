@@ -839,7 +839,8 @@ function copyMcp() {
 
 async function init() {
   try {
-    const r = await fetch('/cmd?q=status');
+    const user = isKiroAccount() ? 'kiro' : 'yy';
+const r = await fetch('/cmd?q=status&user=' + user);
     const d = await r.json();
     const s = parseStats(d.result);
     const card = document.createElement('div'); card.className = 'msg-card';
