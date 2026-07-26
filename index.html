@@ -134,6 +134,26 @@ body { background:#fff; color:#111; font-family:-apple-system,'Helvetica Neue',s
 .wallet-row-label { color:#333; }
 .wallet-row .amount { font-weight:600; color:#111; white-space:nowrap; }
 .wallet-row .amount.neg { color:#e55; }
+.map-season-bar { display:flex; gap:8px; margin-bottom:14px; }
+.map-season-btn { flex:1; background:#fff; border:1.5px solid #e0e0e0; border-radius:20px; padding:6px 0; font-size:13px; color:#555; cursor:pointer; font-family:inherit; text-align:center; }
+.map-season-btn.active { border-color:#007aff; color:#007aff; font-weight:600; background:#e8f0ff; }
+.map-item { background:#fff; border-radius:14px; padding:14px; display:flex; gap:12px; align-items:center; margin-bottom:10px; cursor:pointer; position:relative; }
+.map-item:active { background:#f5f5f5; }
+.map-item.locked { opacity:0.6; cursor:default; }
+.map-thumb { width:56px; height:56px; border-radius:10px; flex-shrink:0; }
+.map-info { flex:1; min-width:0; }
+.map-name { font-size:15px; font-weight:600; color:#111; margin-bottom:3px; }
+.map-fish-hint { font-size:12px; color:#888; line-height:1.5; }
+.map-right { display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; }
+.map-cost { font-size:12px; color:#ff9500; font-weight:600; white-space:nowrap; }
+.map-current { font-size:11px; color:#34c759; font-weight:600; white-space:nowrap; }
+.map-lock-badge { font-size:11px; color:#aaa; white-space:nowrap; }
+.map-season-tag { display:inline-block; font-size:10px; padding:2px 7px; border-radius:10px; margin-right:4px; margin-bottom:2px; }
+.map-season-tag.春 { background:#fff0f0; color:#e07070; }
+.map-season-tag.夏 { background:#f0fff0; color:#50a050; }
+.map-season-tag.秋 { background:#fff8e8; color:#c08030; }
+.map-season-tag.冬 { background:#f0f4ff; color:#6080c0; }
+.map-season-tag.全年 { background:#f2f2f2; color:#888; }
 </style>
 </head>
 <body>
@@ -188,6 +208,11 @@ body { background:#fff; color:#111; font-family:-apple-system,'Helvetica Neue',s
       <div class="account-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
     </div>
     <div class="settings-group">
+      <div class="settings-row" onclick="openSubpage('map')">
+        <div class="s-icon" style="background:#34aadc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg></div>
+        <span class="s-label">地图</span>
+        <div class="s-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </div>
       <div class="settings-row" onclick="openSubpage('shop')">
         <div class="s-icon" style="background:#ff9500"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
         <span class="s-label">商店</span>
@@ -309,11 +334,12 @@ function openSettings()  { document.getElementById('page-settings').classList.ad
 function closeSettings() { document.getElementById('page-settings').classList.remove('open'); }
 
 function openSubpage(key) {
-  const titles = { shop:'商店', wallet:'钱包', encyclopedia:'图鉴', sell:'卖鱼', bluetooth:'蓝牙' };
+  const titles = { map:'地图', shop:'商店', wallet:'钱包', encyclopedia:'图鉴', sell:'卖鱼', bluetooth:'蓝牙' };
   document.getElementById('subpage-title').textContent = titles[key] || key;
   const body = document.getElementById('subpage-body');
   body.innerHTML = '';
-  if      (key === 'shop')         renderShop(body);
+  if      (key === 'map')          renderMap(body);
+  else if (key === 'shop')         renderShop(body);
   else if (key === 'wallet')       renderWallet(body);
   else if (key === 'bluetooth')    renderBluetooth(body);
   else if (key === 'sell')         renderSell(body);
@@ -322,6 +348,165 @@ function openSubpage(key) {
   document.getElementById('page-sub').classList.add('open');
 }
 function closeSubpage() { document.getElementById('page-sub').classList.remove('open'); }
+const MAP_DB = [
+  {
+    id:'moonlit_pond', name:'月光池塘', cost:0,
+    color:'#c8e6f5',
+    seasons:['全年'],
+    fish:['鲤鱼','鲫鱼','草鱼','金鱼','锦鲤'],
+    desc:'宁静的月光池塘，水草丰茂，是新手入门的理想之地。全年皆可垂钓。'
+  },
+  {
+    id:'reed_river', name:'芦苇河', cost:0,
+    color:'#c8f5d8',
+    seasons:['全年'],
+    fish:['鲈鱼','鳊鱼','鲦鱼','鳑鲏','欧鳊'],
+    desc:'芦苇丛生的宽阔河流，是各种淡水鱼的乐园。四季皆有不同风景。'
+  },
+  {
+    id:'whispering_mire', name:'耳语沼泽', cost:200,
+    color:'#d8e8c8',
+    seasons:['春','夏','秋'],
+    fish:['鲶鱼','泥鳅','花鳅','七鳃鳗','乌鳢'],
+    desc:'神秘幽深的沼泽地带，水面时常升起薄雾。底栖鱼类和奇特鱼种在此聚集。'
+  },
+  {
+    id:'abyssal_trench', name:'深渊海沟', cost:300,
+    color:'#c8d0f0',
+    seasons:['全年'],
+    fish:['金枪鱼','鲨鱼','旗鱼','马林鱼','雷鳗'],
+    desc:'深不见底的海沟，水压极高。只有最勇敢的钓者才敢来此挑战深海猛鱼。'
+  },
+  {
+    id:'mangrove_shoal', name:'红树林浅滩', cost:320,
+    color:'#e8f0c0',
+    seasons:['春','夏'],
+    fish:['小丑鱼','红鲷鱼','石斑鱼','比目鱼','河豚'],
+    desc:'热带红树林环绕的浅水区，珊瑚和水草交织。热带鱼种在此繁衍生息。'
+  },
+  {
+    id:'geyser_falls', name:'间歇泉瀑布', cost:400,
+    color:'#f5e8c8',
+    seasons:['春','秋'],
+    fish:['鳟鱼','三文鱼','茴鱼','红点鲑','哲罗鲑'],
+    desc:'山间间歇喷涌的温泉瀑布，水温清凉富含矿物质。冷水鱼类的天堂。'
+  },
+  {
+    id:'starry_delta', name:'星河三角洲', cost:480,
+    color:'#e8d8f8',
+    seasons:['夏','秋'],
+    fish:['鲟鱼','小鲟','鳗鱼','黄尾鱼','鲭鱼','海鲈鱼','鲳鱼','蛳鱼'],
+    desc:'江河入海口的广阔三角洲，淡水与咸水交汇。洄游鱼类和近海鱼种在此汇聚。'
+  },
+  {
+    id:'lava_spring', name:'熔岩温泉', cost:550,
+    color:'#f8d8c8',
+    seasons:['冬'],
+    fish:['龙鱼','雷鳗','幽灵鱼','古龟鱼'],
+    desc:'火山岩浆加热的神秘温泉，水温极高。只有冬季才能忍受其热度，钓到传说中的鱼。'
+  },
+  {
+    id:'floating_lake', name:'浮空之湖', cost:600,
+    color:'#d8f0f8',
+    seasons:['春','夏','秋','冬'],
+    fish:['龙鱼','月光鱼','黄金鲤','白鲑','多瑙哲罗','幽灵鱼'],
+    desc:'漂浮在云端的神秘湖泊，水质纯净如镜。传说级别的稀有鱼种在此栖息。'
+  },
+  {
+    id:'sunken_ruins', name:'沉没遗迹', cost:650,
+    color:'#d0d8e8',
+    seasons:['秋','冬'],
+    fish:['古龟鱼','幽灵鱼','欧洲鲶','梭鱼','白斑狗鱼'],
+    desc:'沉入水底的古代遗迹，布满青苔和珊瑚。秘境中藏着上古巨鱼的踪迹。'
+  },
+  {
+    id:'crystal_cave', name:'水晶洞', cost:800,
+    color:'#e8f8f0',
+    seasons:['全年'],
+    fish:['月光鱼','黄金鲤','幽灵鱼','雷鳗','古龟鱼'],
+    desc:'水晶洞穴中的地下暗河，水面折射出七彩光芒。最神秘稀有的传说鱼种聚集于此。'
+  },
+];
+
+const SEASON_COLORS = { 春:'#e07070', 夏:'#50a050', 秋:'#c08030', 冬:'#6080c0', 全年:'#888' };
+let mapSeasonFilter = '全年';
+
+function renderMap(body) {
+  const currentLoc = lastStats ? lastStats.loc : null;
+  const currentSea = lastStats ? lastStats.sea : '春';
+  mapSeasonFilter = currentSea || '全年';
+
+  const seasons = ['全年','春','夏','秋','冬'];
+  let html = '<div class="shop-search-wrap"><div class="shop-search">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
+    '<input id="map-search-input" placeholder="搜索地点…" oninput="filterMap(this.value)">' +
+    '</div></div>';
+
+  html += '<div class="map-season-bar">' +
+    seasons.map(s =>
+      '<button class="map-season-btn' + (mapSeasonFilter===s?' active':'') +
+      '" onclick="setMapSeason(\'' + s + '\')">' + s + '</button>'
+    ).join('') + '</div>';
+
+  html += '<div id="map-list"></div>';
+  body.innerHTML = html;
+  renderMapList(MAP_DB, '');
+}
+
+function setMapSeason(s) {
+  mapSeasonFilter = s;
+  document.querySelectorAll('.map-season-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent === s);
+  });
+  const searchInput = document.getElementById('map-search-input');
+  filterMap(searchInput ? searchInput.value : '');
+}
+
+function filterMap(q) {
+  const kw = q.trim().toLowerCase();
+  const filtered = kw
+    ? MAP_DB.filter(m => m.name.toLowerCase().includes(kw) || m.fish.some(f => f.includes(kw)))
+    : MAP_DB;
+  renderMapList(filtered, kw);
+}
+
+function renderMapList(list, kw) {
+  const currentLoc = lastStats ? lastStats.loc : null;
+  const filtered = mapSeasonFilter === '全年'
+    ? list
+    : list.filter(m => m.seasons.includes(mapSeasonFilter) || m.seasons.includes('全年'));
+  const container = document.getElementById('map-list');
+  if (!container) return;
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="subpage-empty"><div class="ep-icon">🗺️</div><div class="ep-text">没有找到相关地点</div></div>';
+    return;
+  }
+  container.innerHTML = filtered.map(m => {
+    const isCurrent = currentLoc && currentLoc.includes(m.name);
+    const isLocked = m.cost > 0;
+    const seasonTags = m.seasons.map(s =>
+      '<span class="map-season-tag ' + s + '">' + s + '</span>'
+    ).join('');
+    const fishHint = m.fish.slice(0,3).join('、') + (m.fish.length>3 ? '等' : '');
+    return '<div class="map-item' + (isLocked?' locked':'') + '" onclick="gotoMap(\'' + m.id + '\',\'' + m.name + '\',' + m.cost + ')">' +
+      '<div class="map-thumb" style="background:' + m.color + '"></div>' +
+      '<div class="map-info">' +
+      '<div class="map-name">' + m.name + '</div>' +
+      '<div class="map-fish-hint">' + seasonTags + '</div>' +
+      '<div class="map-fish-hint" style="margin-top:2px">可钓：' + fishHint + '</div>' +
+      '</div>' +
+      '<div class="map-right">' +
+      (isCurrent ? '<span class="map-current">当前</span>' : '') +
+      (isLocked ? '<span class="map-cost">🔒 ' + m.cost + '点</span>' : '<span class="map-cost" style="color:#34c759">已解锁</span>') +
+      '</div></div>';
+  }).join('');
+}
+
+async function gotoMap(id, name, cost) {
+  closeSubpage();
+  closeSettings();
+  await send('goto ' + id);
+}
 const ITEM_DESCS = {
   basic_worm:'最普通的蚯蚓，上手即用，适合新手练手。',
   red_worm:'红色蚯蚓，诱鱼效果更好，稀有鱼概率小幅提升。',
@@ -608,18 +793,18 @@ function closeEncModal(e) {
   if (!e || e.target === document.getElementById('enc-modal-bg'))
     document.getElementById('enc-modal-bg').classList.remove('open');
 }
+
 function renderWallet(body) {
   const total = lastStats ? lastStats.pts : '—';
   const owner = isKiroAccount() ? '小克' : '钓鱼佬';
   const rows = ledger.length === 0
     ? '<div class="wallet-row"><div class="wallet-row-left"><span class="wallet-row-label">暂无明细</span></div><span class="amount">—</span></div>'
     : ledger.slice().reverse().map(e => {
-        const label = e.cmd;
         const amtStr = (e.diff > 0 ? '+' : '') + e.diff + '¥';
         return '<div class="wallet-row">' +
           '<div class="wallet-row-left">' +
           '<span class="wallet-row-type">' + e.type + '</span>' +
-          '<span class="wallet-row-label">' + label + '</span>' +
+          '<span class="wallet-row-label">' + e.cmd + '</span>' +
           '</div>' +
           '<span class="amount' + (e.diff<0?' neg':'') + '">' + amtStr + '</span>' +
           '</div>';
