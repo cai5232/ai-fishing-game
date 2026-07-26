@@ -2050,7 +2050,13 @@ def _run_one(line):
         # 公开 API 兜底：任何意外（含格式错）都返回友好文字，绝不向调用方抛栈
         return "这条指令没读懂（%s）。看 cmd('help')，例：buy basic_worm 2 / cast 10 stop=rare。" % e
 
-def cmd(line=""):
+    def cmd(line="", user="default"):
+    global _SAVE, S
+    new_save = f"/data/fishing_save_{user}.json"
+    if new_save != _SAVE:
+        _SAVE = new_save
+        S = None
+
     """游戏的唯一入口：传一条文字指令，返回结果文字。任何输入都只返回字符串、不抛异常。
     可用 ; 或换行把多条指令串成一批一次执行（省来回 token），如 cmd('buy basic_worm 10; cast 10')。"""
     _load()
