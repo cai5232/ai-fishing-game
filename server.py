@@ -14,9 +14,7 @@ def root():
 
 @app.get("/cmd")
 def cmd_api(q: str, user: str = "default"):
-    engine._SAVE = "/data/fishing_save_{}.json".format(user)
-    engine.S = None
-    return {"result": engine.cmd(q)}
+    return {"result": engine.cmd(q, user)}
 
 @app.get("/mcp/fishing")
 def mcp_fishing(q: str):
