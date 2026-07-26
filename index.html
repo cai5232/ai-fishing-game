@@ -709,7 +709,7 @@ let encUnlocked = new Set();
 async function renderEncyclopedia(body) {
 try {
   const user = isKiroAccount() ? 'kiro' : 'yy';
-  const r = await fetch('/cmd?q=encyclopedia&user=' + user);
+  const r = await fetch(`/cmd?q=encyclopedia&user=${user}`);
   const d = await r.json();
   const text = d.result;
   encUnlocked = new Set();
