@@ -83,7 +83,7 @@ async def mcp_post(request: Request):
             "result": {"tools": MCP_TOOLS}
         })
 
-    elif method == "tools/":
+    elif method == "tools/call":
         params = body.get("params", {})
         name = params.get("name")
         args = params.get("arguments", {})
